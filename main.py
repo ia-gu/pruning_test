@@ -9,13 +9,15 @@ import torch.backends.cudnn as cudnn
 import os
 import sys
 sys.path.append('./')
-import argparse
+import yaml
 import random
 import numpy as np
+import wandb
+import argparse
+from datetime import datetime
 
 from src.utils.train import train
 from src.utils.get_dataset import build_dataset, build_eval_dataset
-from src.eval.evaluate import evaluate
 from src.eval.model import CNNModel
 
 def main(args):
@@ -33,25 +35,6 @@ def main(args):
 
     train(args, model, train_loader, eval_loader, criterion, device)
 
-    print('Pruning前のモデル:')
-    total_params = 0
-    for name, module in model.named_modules():
-        if isinstance(module, nn.Conv2d):
-            non_zero_params = (module.weight != 0).sum().item()
-            total_params += non_zero_params
-    print(f'\nTotal number of non-zero Conv2d parameters: {total_params:,}')
-    evaluate(0, model, criterion, eval_loader, device)
-
-    model = prune_model(model, amount=0.01)
-
-    print('Pruning後のモデル:')
-    total_params = 0
-    for name, module in model.named_modules():
-        if isinstance(module, nn.Conv2d):
-            non_zero_params = (module.weight != 0).sum().item()
-            total_params += non_zero_params
-    print(f'\nTotal number of non-zero Conv2d parameters: {total_params:,}')
-    evaluate(0, model, criterion, eval_loader, device)
 
 
 
@@ -75,13 +58,14 @@ def parse_args():
     parser.add_argument('--num_classes', type=int, default=1000)
     parser.add_argument('--dataset', type=str, default='ImageNet')
     parser.add_argument('--seed', type=int, default=42)
+    parser.add_argument('--pruning_ratio', type=float, default=0.5)
 
     parser.add_argument('--batch_size', type=int, default=256)
     parser.add_argument('--lr', type=float, default=1e-4)
     parser.add_argument('--epochs', type=int, default=200)
     parser.add_argument('--warmup_epochs', type=int, default=5, help='Optional for warmup cosine annealing')
-    parser.add_argument('--steps', type=int, default=10)
-    parser.add_argument('--strategy', type=str, default=None)
+    parser.add_argument('--step', type=int, default=10)
+    parser.add_argument('--importance', type=str, default='L1')
 
     parser.add_argument('--wandb_project', type=str, default='pruning')
     parser.add_argument('--wandb_run', type=str, default='debug')
@@ -101,5 +85,12 @@ def set_seed(args):
 if __name__ == '__main__':
 
     args = parse_args()
+    timestamp = datetime.now().strftime('%Y%m%d%H%M%S')
+    args.output_path = os.path.join(args.output_path, args.wandb_run, args.model, args.dataset, args.importance, str(args.lr), str(args.seed), str(args.pruning_ratio), timestamp)
+    os.makedirs(args.output_path, exist_ok=True)
+    wandb.init(project=args.wandb_project, entity=args.wandb_entity, name=args.wandb_run+'_'+args.model+'_'+args.dataset+'_'+args.importance+'_'+str(args.lr)+'_'+str(args.seed)+'_'+str(args.pruning_ratio), config=vars(args))
+    # output args to yaml file
+    with open(os.path.join(args.output_path, 'args.yaml'), 'w') as f:
+        yaml.dump(vars(args), f)
 
     main(args)
