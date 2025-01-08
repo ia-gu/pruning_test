@@ -19,11 +19,11 @@ def train(args, model, train_loader, eval_loader, criterion, device):
     num_steps = args.epochs // args.step
     pruning_ratio = 0.0
     for epoch in range(args.epochs):
-        # train_loss, train_accuracy = train_epoch(epoch, model, train_loader, criterion, device, optimizer, scheduler)
-        # eval_loss, eval_accuracy = eval_epoch(epoch, model, criterion, eval_loader, device)
-        # with open(os.path.join(args.output_path, 'result.txt'), 'a') as f:
-        #     f.write(f'Epoch: |{epoch+1}| Train_Loss: |{train_loss}| Train_Accuracy: |{train_accuracy}| Eval_Loss: |{eval_loss}| Eval_Accuracy: |{eval_accuracy}|\n')
-        # wandb.log({'epoch': epoch+1, 'Train_Loss': train_loss, 'Train_Accuracy': train_accuracy, 'Eval_Loss': eval_loss, 'Eval_Accuracy': eval_accuracy})
+        train_loss, train_accuracy = train_epoch(epoch, model, train_loader, criterion, device, optimizer, scheduler)
+        eval_loss, eval_accuracy = eval_epoch(epoch, model, criterion, eval_loader, device)
+        with open(os.path.join(args.output_path, 'result.txt'), 'a') as f:
+            f.write(f'Epoch: |{epoch+1}| Train_Loss: |{train_loss}| Train_Accuracy: |{train_accuracy}| Eval_Loss: |{eval_loss}| Eval_Accuracy: |{eval_accuracy}|\n')
+        wandb.log({'epoch': epoch+1, 'Train_Loss': train_loss, 'Train_Accuracy': train_accuracy, 'Eval_Loss': eval_loss, 'Eval_Accuracy': eval_accuracy})
 
         if (epoch+1) % args.step == 0:
             pruning_ratio += (args.pruning_ratio / num_steps)
