@@ -1,4 +1,8 @@
+import torch
+import torch.nn as nn
 import torch.nn.utils.prune as prune
+
+import os
 
 from src.importance import hessian_pruning
 
@@ -17,13 +21,18 @@ def prune_model(args, model, criterion, train_loader, amount=0.5):
         }
         if args.importance not in pruning_functions:
             raise ValueError('Invalid importance type')
-        pruning_functions[args.importance](module)
+        for module in model.modules():
+            if isinstance(module, nn.Conv2d):
+                if hasattr(module, 'weight'):
+                    pruning_functions[args.importance](module)
 
-    # ↓モデル保存用
-    tmp_model = model
+    # 保存用のモデルを複製し，マスクを適用して追加モジュールをはがす
+    # copy.deepcopyなどでは実装できない
+    torch.save(model, "temp_model.pth")
+    tmp_model = torch.load("temp_model.pth")
+    os.remove("temp_model.pth")
     for module in tmp_model.modules():
         if hasattr(module, 'weight_mask'):
             prune.remove(module, 'weight')
-
 
     return model, tmp_model

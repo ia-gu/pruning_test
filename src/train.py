@@ -1,9 +1,6 @@
 from tqdm import tqdm
-from torch.nn import Module
-from torch.optim import Optimizer
-from torch.utils.data import DataLoader
 import torch
-import torch.nn as nn
+import torch.nn.utils.prune as prune
 
 import os
 import wandb
@@ -33,6 +30,15 @@ def train(args, model, train_loader, eval_loader, criterion, device):
             del tmp_model
             gc.collect()
 
+    for epoch in range(args.epochs, args.epochs+20):
+        train_loss, train_accuracy = train_epoch(epoch, model, train_loader, criterion, device, optimizer, scheduler)
+        eval_loss, eval_accuracy = eval_epoch(epoch, model, criterion, eval_loader, device)
+        with open(os.path.join(args.output_path, 'result.txt'), 'a') as f:
+            f.write(f'Epoch: |{epoch+1}| Train_Loss: |{train_loss}| Train_Accuracy: |{train_accuracy}| Eval_Loss: |{eval_loss}| Eval_Accuracy: |{eval_accuracy}|\n')
+        for module in tmp_model.modules():
+            if hasattr(module, 'weight_mask'):
+                prune.remove(module, 'weight')
+        torch.save(tmp_model.state_dict(), os.path.join(args.output_path, 'ckpt', str(epoch+1)+'.pth'))
 
 def train_epoch(epoch, model, loader, criterion, device, optimizer, scheduler):
     model.train()
