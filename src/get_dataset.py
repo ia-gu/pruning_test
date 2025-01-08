@@ -1,11 +1,6 @@
 import os
-import json
 
 from torchvision import datasets, transforms
-from torch.utils.data import Dataset
-from torchvision.datasets.folder import ImageFolder, default_loader
-from timm.data.constants import IMAGENET_DEFAULT_MEAN, IMAGENET_DEFAULT_STD
-from timm.data import create_transform
 
 def build_dataset(args):
     train_transform, _ = build_transform(args)
@@ -57,26 +52,28 @@ def build_test_dataset(args):
     _, test_transform = build_transform(args)
 
     if args.dataset == 'CIFAR10':
-        dataset_normal = datasets.CIFAR10(data_path, train=False, transform=test_transform, download=True)
-        root = os.path.join(data_path, 'CIFAR-10-C-ImageFolder')
+        root = '~/dataset'
+        dataset_normal = datasets.CIFAR10(root, train=False, transform=test_transform, download=True)
+        root = os.path.join(root, 'CIFAR-10-C-ImageFolder')
         print(root)
         
     elif args.dataset == 'CIFAR100':
-        dataset_normal = datasets.CIFAR100(data_path, train=False, transform=test_transform, download=True)
-        root = os.path.join(data_path, 'CIFAR-100-C-ImageFolder')
+        root = '~/dataset'
+        dataset_normal = datasets.CIFAR100(root, train=False, transform=test_transform, download=True)
+        root = os.path.join(root, 'CIFAR-100-C-ImageFolder')
         print(root)
     
     elif args.dataset == 'ImageNet':
         root = '/data01/imagenet/val_256'
-        dataset_normal = datasets.ImageFolder(data_path, transform=test_transform)
+        dataset_normal = datasets.ImageFolder(root, transform=test_transform)
         root = '/data/imagenet_family/imagenet-c'
         raise NotImplementedError
 
 
     elif args.dataset == 'TINY':
-        root = os.path.join(data_path,'Tiny-ImageNet/tiny-imagenet-200/val')
+        root = '~/dataset/Tiny-ImageNet/tiny-imagenet-200/val'
         dataset_normal = datasets.ImageFolder(root, transform=test_transform)
-        root = os.path.join(data_path,'Tiny-ImageNet-C-ImageFolder')
+        root = '~/dataset/Tiny-ImageNet-C-ImageFolder'
         print(root)
 
     dataset_brightness = datasets.ImageFolder(os.path.join(root, 'brightness'), transform=test_transform)

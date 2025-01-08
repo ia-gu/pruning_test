@@ -1,0 +1,1 @@
+python eval.py --model=ResNet18 --num_classes=10 --dataset=CIFAR10 --epoch=2 --weight_path=/home/ueno/pruning/test/logs/debug/ResNet18/CIFAR10/Hessian/0.0001/42/0.5/20250108061755/ckpt

@@ -1,2 +1,3 @@
-train_logs
+logs
 wandb
+debug.sh

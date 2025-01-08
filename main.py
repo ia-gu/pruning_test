@@ -1,8 +1,5 @@
 import torch
 import torch.nn as nn
-import torch.nn.utils.prune as prune
-import torchvision.transforms as transforms
-import torchvision.datasets as datasets
 import torch.backends.cudnn as cudnn
 
 
@@ -16,41 +13,30 @@ import wandb
 import argparse
 from datetime import datetime
 
-from src.utils.train import train
-from src.utils.get_dataset import build_dataset, build_eval_dataset
-from src.eval.model import CNNModel
+from src.train import train
+from src.get_dataset import build_dataset, build_eval_dataset
+from src.model import CNNModel
 
 def main(args):
     set_seed(args)
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-    model = CNNModel(model=args.model, classes=args.num_classes, pretrained=True)
-    model = model.to(device)
 
     train_dataset, nb_classes = build_dataset(args)
+    if nb_classes != args.num_classes:
+        raise ValueError('Number of classes in dataset and num_classes should be the same')
     eval_dataset, _ = build_eval_dataset(args)
     generator = torch.Generator().manual_seed(args.seed)
     train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=args.batch_size, shuffle=True, drop_last=True, pin_memory=True, num_workers=2, generator=generator)
     eval_loader = torch.utils.data.DataLoader(eval_dataset, batch_size=args.batch_size, shuffle=False, drop_last=False, pin_memory=True, num_workers=2)
     criterion = nn.CrossEntropyLoss()
 
+    model = CNNModel(model=args.model, classes=args.num_classes, pretrained=True)
+    model = model.to(device)
+
     train(args, model, train_loader, eval_loader, criterion, device)
 
 
 
-
-def prune_model(model, amount=0.5):
-    '''
-    ResNet18の畳み込み層をLNノルムに基づいてPruning
-    Args:
-        model: モデル
-        amount: 剪定率 (0.0 - 1.0, 例: 0.5は50%)
-    '''
-    for name, module in model.named_modules():
-        # 畳み込み層 (Conv2d) に対してPruningを適用
-        if isinstance(module, nn.Conv2d):
-            prune.ln_structured(module, name='weight', amount=amount, n=1, dim=0)
-            prune.remove(module, 'weight')
-    return model
 
 def parse_args():
     parser = argparse.ArgumentParser(description='Deep Learning Model Configuration')
@@ -70,7 +56,7 @@ def parse_args():
     parser.add_argument('--wandb_project', type=str, default='pruning')
     parser.add_argument('--wandb_run', type=str, default='debug')
     parser.add_argument('--wandb_entity', type=str, default='ia-gu')
-    parser.add_argument('--output_path', type=str, default='./train_logs')
+    parser.add_argument('--output_path', type=str, default='./logs')
 
     return parser.parse_args()
 
@@ -87,7 +73,7 @@ if __name__ == '__main__':
     args = parse_args()
     timestamp = datetime.now().strftime('%Y%m%d%H%M%S')
     args.output_path = os.path.join(args.output_path, args.wandb_run, args.model, args.dataset, args.importance, str(args.lr), str(args.seed), str(args.pruning_ratio), timestamp)
-    os.makedirs(args.output_path, exist_ok=True)
+    os.makedirs(os.path.join(args.output_path, 'ckpt'), exist_ok=True)
     wandb.init(project=args.wandb_project, entity=args.wandb_entity, name=args.wandb_run+'_'+args.model+'_'+args.dataset+'_'+args.importance+'_'+str(args.lr)+'_'+str(args.seed)+'_'+str(args.pruning_ratio), config=vars(args))
     # output args to yaml file
     with open(os.path.join(args.output_path, 'args.yaml'), 'w') as f:
