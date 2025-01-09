@@ -35,10 +35,10 @@ def train(args, model, train_loader, eval_loader, criterion, device):
         eval_loss, eval_accuracy = eval_epoch(epoch, model, criterion, eval_loader, device)
         with open(os.path.join(args.output_path, 'result.txt'), 'a') as f:
             f.write(f'Epoch: |{epoch+1}| Train_Loss: |{train_loss}| Train_Accuracy: |{train_accuracy}| Eval_Loss: |{eval_loss}| Eval_Accuracy: |{eval_accuracy}|\n')
-        for module in tmp_model.modules():
+        for module in model.modules():
             if hasattr(module, 'weight_mask'):
                 prune.remove(module, 'weight')
-        torch.save(tmp_model.state_dict(), os.path.join(args.output_path, 'ckpt', str(epoch+1)+'.pth'))
+        torch.save(model.state_dict(), os.path.join(args.output_path, 'ckpt', 'final_weight.pth'))
 
 def train_epoch(epoch, model, loader, criterion, device, optimizer, scheduler):
     model.train()
