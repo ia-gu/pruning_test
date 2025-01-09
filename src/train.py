@@ -22,7 +22,7 @@ def train(args, model, train_loader, eval_loader, criterion, device):
             f.write(f'Epoch: |{epoch+1}| Train_Loss: |{train_loss}| Train_Accuracy: |{train_accuracy}| Eval_Loss: |{eval_loss}| Eval_Accuracy: |{eval_accuracy}|\n')
         wandb.log({'epoch': epoch+1, 'Train_Loss': train_loss, 'Train_Accuracy': train_accuracy, 'Eval_Loss': eval_loss, 'Eval_Accuracy': eval_accuracy})
 
-        if (epoch+1) % args.step == 0:
+        if (epoch+1) % args.step == 0 and args.importance != 'None':
             pruning_ratio += (args.pruning_ratio / num_steps)
             model, tmp_model = pruning(args, epoch, model, train_loader, eval_loader, criterion, pruning_ratio, device)
             # save model

@@ -51,7 +51,7 @@ def parse_args():
     parser.add_argument('--epochs', type=int, default=200)
     parser.add_argument('--warmup_epochs', type=int, default=5, help='Optional for warmup cosine annealing')
     parser.add_argument('--step', type=int, default=10)
-    parser.add_argument('--importance', type=str, default='L1')
+    parser.add_argument('--importance', type=str, default='L1', help='None: なし, L1: L1ノルム, Hessian: ヘッシアン')
 
     parser.add_argument('--wandb_project', type=str, default='pruning')
     parser.add_argument('--wandb_run', type=str, default='debug')
