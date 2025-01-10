@@ -10,6 +10,14 @@ def hessian_pruning(model, amount, criterion, train_loader):
     # プルーニング
     return _prune_with_hessian_diag_approx(model, hessian_diag_approx, sparsity=amount)
 
+def hessian_param_pruning(model, amount, criterion, train_loader):
+    # Hessian計算
+    hessian_diag_approx = _compute_hessian_diagonal_approx(
+        model, train_loader, criterion, device=torch.device('cuda')
+    )
+    # プルーニング
+    return _prune_with_hessian_diag_approx_param(model, hessian_diag_approx, sparsity=amount)
+
 def _prune_with_hessian_diag_approx(model, hessian_diag_list, sparsity=0.2):
     diag_scores = []
     for diag_tensor in hessian_diag_list:
@@ -31,7 +39,7 @@ def _prune_with_hessian_diag_approx(model, hessian_diag_list, sparsity=0.2):
                 param_size = param.numel()
                 param_diag_score = diag_scores[idx : idx + param_size]
                 idx += param_size
-                # biasi項などはスキップ
+                # bias項などはスキップ
                 if name != "weight":
                     continue
                 # パラメータの対角近似スコアが閾値以上のものを残す
@@ -44,6 +52,42 @@ def _prune_with_hessian_diag_approx(model, hessian_diag_list, sparsity=0.2):
 
     return model
 
+def _prune_with_hessian_diag_approx_param(model, hessian_diag_list, sparsity=0.2):
+    diag_scores = []; param_list = []
+    for diag_tensor, param in zip(hessian_diag_list, model.parameters()):
+        diag_scores.append(torch.abs(diag_tensor.view(-1))) 
+        param_list.append(torch.abs(param.view(-1)))
+    adjusted_scores = [h * p for h, p in zip(diag_scores, param_list)]
+    diag_scores = torch.cat(adjusted_scores)
+
+    num_params = diag_scores.numel()
+    k = int(num_params * (1 - sparsity))
+    if k <= 0:
+        print("sparsity が高すぎてパラメータを全て刈り取る可能性があります。")
+        return model
+    threshold = torch.topk(diag_scores, k, largest=True).values.min()
+    prune_targets = []
+    idx = 0
+
+    for module in model.modules():
+        for name, param in module.named_parameters(recurse=False):
+            if param.requires_grad:
+                param_size = param.numel()
+                # Hessianとパラメータの要素積
+                param_diag_score = diag_scores[idx : idx + param_size]
+                idx += param_size
+                # bias項などはスキップ
+                if name != "weight":
+                    continue
+                # パラメータの対角近似スコアが閾値以上のものを残す
+                mask_flat = (param_diag_score >= threshold).float()
+                mask = mask_flat.view(param.shape)
+
+                prune_targets.append((module, name, mask))
+    for (module, name, mask) in prune_targets:
+        prune.custom_from_mask(module, name, mask)
+
+    return model
 
 def _compute_hessian_diagonal_approx(model, dataloader, loss_fn, device='cpu'):
     model.to(device)
