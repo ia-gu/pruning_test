@@ -18,8 +18,8 @@ from src.model import CNNModel
 def main(args):
     set_seed(args)
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-    model = CNNModel(model=args.model, classes=args.num_classes, pretrained=True)
-    model.load_state_dict(torch.load(os.path.join(args.weight_path, str(args.epoch)+'.pth')))
+    model = CNNModel(model=args.model, classes=args.num_classes, pretrained=False)
+    model.load_state_dict(torch.load(os.path.join(args.weight_path, args.epoch+'.pth')))
 
     model = model.to(device)
     test_datasets = build_test_dataset(args)
@@ -116,12 +116,12 @@ def evaluate_robustness(data_loader, model, device, args, dataset_type):
     print(f'{args.dataset}, {dataset_type}')
     print(f'* Acc@1 {avg_acc1:.3f}  Acc@5 {avg_acc5:.3f}  Loss {avg_loss:.3f}')
 
-    os.makedirs(os.path.join(args.output_path, '../test', str(args.epoch)), exist_ok=True)
-    with open(os.path.join(args.output_path, '../test', str(args.epoch), 'total_result.txt'), "a") as f:
+    os.makedirs(os.path.join(args.output_path, '../test', args.epoch), exist_ok=True)
+    with open(os.path.join(args.output_path, '../test', args.epoch, 'total_result.txt'), "a") as f:
         f.write(f'{args.dataset}, {dataset_type}')
         f.write(f'* Acc@1 {avg_acc1:.3f}  Acc@5 {avg_acc5:.3f}  Loss {avg_loss:.3f}\n')
 
-    with open(os.path.join(args.output_path, '../test', str(args.epoch), 'class_wise_result.txt'), "a") as f:
+    with open(os.path.join(args.output_path, '../test', args.epoch, 'class_wise_result.txt'), "a") as f:
         f.write(f'{args.dataset}, {dataset_type}')
         for i, (cls, acc) in enumerate(zip(classes, per_class_acc)):
             f.write(f"Class {cls}: {acc:.2f}%")
@@ -142,7 +142,7 @@ def parse_args():
     parser.add_argument('--seed', type=int, default=42)
     parser.add_argument('--batch_size', type=int, default=256)
     parser.add_argument('--weight_path', type=str, default=None)
-    parser.add_argument('--epoch', type=int, default=0)
+    parser.add_argument('--epoch', type=str, default='0')
 
     parser.add_argument('--wandb_project', type=str, default='pruning')
     parser.add_argument('--wandb_run', type=str, default='debug')

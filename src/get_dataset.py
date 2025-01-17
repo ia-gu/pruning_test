@@ -1,5 +1,7 @@
 import os
+import random
 
+import torch
 from torchvision import datasets, transforms
 
 def build_dataset(args):
@@ -25,8 +27,8 @@ def build_dataset(args):
 
     return dataset, nb_classes
 
-def build_eval_dataset(args):
-    _, test_transform = build_transform(args)
+def build_eval_dataset(args, xx=None, yy=None, fourier=False):
+    _, test_transform = build_transform(args, xx, yy, fourier)
 
     if args.dataset == 'CIFAR100':
         data_path = '~/dataset'
@@ -98,7 +100,8 @@ def build_test_dataset(args):
 
     return [dataset_normal, dataset_brightness, dataset_contrast, dataset_defocus_blur, dataset_elastic_transform, dataset_fog, dataset_frost, dataset_gaussian_blur, dataset_gaussian_noise, dataset_glass_blur, dataset_impulse_noise, dataset_jpeg_compression, dataset_motion_blur, dataset_pixelate, dataset_saturate, dataset_shot_noise, dataset_snow, dataset_spatter, dataset_speckle_noise, dataset_zoom_blur]
 
-def build_transform(args):
+
+def build_transform(args, xx=None, yy=None, fourier=False):
     if args.dataset == 'CIFAR100':
         norm_train = transforms.Normalize(mean=[0.5071, 0.4867, 0.4408], std=[0.2675, 0.2565, 0.2761])
         norm_test = transforms.Normalize(mean=[0.5071, 0.4867, 0.4408], std=[0.2675, 0.2565, 0.2761])
@@ -119,11 +122,40 @@ def build_transform(args):
         # transforms.RandomRotation(3),
         transforms.ToTensor(),
         norm_train])
-
-    test_transform = transforms.Compose(
-        [transforms.Resize(256),
-        transforms.CenterCrop(224),
-        transforms.ToTensor(),
-        norm_test])
+    if fourier:
+        test_transform = transforms.Compose(
+            [transforms.ToTensor(),
+            Fourier_noise(xx=xx, yy=yy, eps=args.eps),
+            norm_test])
+    else:
+        test_transform = transforms.Compose(
+            [transforms.Resize(256),
+            transforms.CenterCrop(224),
+            transforms.ToTensor(),
+            norm_test])
 
     return train_transform, test_transform
+
+
+class Fourier_noise(object):
+    def __init__(self, crop=32,xx=0, yy=0 ,eps=4):
+        self.eps = eps
+        self.crop = crop
+        self.xx = xx
+        self.yy = yy
+
+    def __call__(self, x):
+        noise_add_data = torch.zeros(3, self.crop, self.crop)
+        noise_place = torch.zeros(self.crop, self.crop)
+        noise_place[self.xx, self.yy] = 1
+        for j in range(3):
+            temp_noise = torch.fft.ifftshift(noise_place)
+            noise_base = torch.fft.ifft2(temp_noise).real
+            noise_base /= torch.linalg.norm(noise_base)
+            noise_base *= self.eps
+            noise_base *= random.randrange(-1, 2, 2)
+            noise_add_data[j] = torch.clamp(
+                x[j] + noise_base, min=0.0, max=1.0
+            )
+
+        return noise_add_data
