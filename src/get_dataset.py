@@ -124,9 +124,11 @@ def build_transform(args, xx=None, yy=None, fourier=False):
         norm_train])
     if fourier:
         test_transform = transforms.Compose(
-            [transforms.ToTensor(),
-            Fourier_noise(xx=xx, yy=yy, eps=args.eps),
-            norm_test])
+            [transforms.Resize(256),
+             transforms.CenterCrop(224),
+             transforms.ToTensor(),
+             Fourier_noise(xx=xx, yy=yy, eps=args.eps),
+             norm_test])
     else:
         test_transform = transforms.Compose(
             [transforms.Resize(256),
@@ -138,7 +140,7 @@ def build_transform(args, xx=None, yy=None, fourier=False):
 
 
 class Fourier_noise(object):
-    def __init__(self, crop=32,xx=0, yy=0 ,eps=4):
+    def __init__(self, crop=224, xx=0, yy=0 ,eps=4):
         self.eps = eps
         self.crop = crop
         self.xx = xx
