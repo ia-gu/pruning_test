@@ -20,7 +20,7 @@ def plot_fig(args, scores):
     ax =sns.heatmap(
         scores,
         vmin=0,
-        vmax=0.1,
+        vmax=0.3,
         cmap="jet",
         cbar=True,
         xticklabels=False,
@@ -57,7 +57,9 @@ if __name__ == "__main__":
         best_score = 0
         for xx in range(32):
             for yy in range(32):
-                test_dataset, _ = build_eval_dataset(args, xx*7 + 4, yy*7 + 4, fourier=True)
+                # x = xx*7 + 4; y = yy*7 + 4
+                test_dataset, _ = build_eval_dataset(args, xx, yy, fourier=True)
+                # test_dataset, _ = build_eval_dataset(args, x, y, fourier=True)
                 test_loader = torch.utils.data.DataLoader(test_dataset, batch_size=250, shuffle=False, num_workers=2, pin_memory=True)
                 valid_loss = 0.
                 valid_acc = 0.
@@ -78,8 +80,8 @@ if __name__ == "__main__":
 
                 np.savetxt(args.weight_path.replace(args.weight_path.split('/')[-1], 'fourier_heat_map.csv'), csv, delimiter=',')
                 print(f'H:{xx+1:d} | W:{yy+1:d} | error: {error:.3f}')
-    else:
-        scores = np.loadtxt(args.weight_path.replace(args.weight_path.split('/')[-1], 'fourier_heat_map.csv'), delimiter=',')
-        plot_fig(args, scores)
+
+    scores = np.loadtxt(args.weight_path.replace(args.weight_path.split('/')[-1], 'fourier_heat_map.csv'), delimiter=',')
+    plot_fig(args, scores)
 
     

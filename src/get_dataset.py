@@ -114,33 +114,70 @@ def build_transform(args, xx=None, yy=None, fourier=False):
     elif args.dataset == 'TINY':
         norm_train = transforms.Normalize(mean=[0.4802, 0.4481, 0.3975], std=[0.2302, 0.2265, 0.2262])
         norm_test = transforms.Normalize(mean=[0.4802, 0.4481, 0.3975], std=[0.2302, 0.2265, 0.2262])
+    
+    if 'CIFAR' in args.dataset:
+        train_transform= transforms.Compose(
+            [
+            transforms.RandomCrop(size=(32, 32), padding=4),
+            transforms.RandomHorizontalFlip(),
+            transforms.ToTensor(),
+            norm_train
+            ])
+        if fourier:
+            test_transform = transforms.Compose(
+                [transforms.ToTensor(),
+                Fourier_noise(xx=xx, yy=yy, eps=args.eps),
+                norm_test])
+        else:
+            test_transform = transforms.Compose(
+                [transforms.ToTensor(),
+                norm_test])
+            
+    elif 'TINY' in args.dataset:
+        train_transform= transforms.Compose(
+            [
+            transforms.RandomCrop(size=(64, 64), padding=4),
+            transforms.RandomHorizontalFlip(),
+            transforms.ToTensor(),
+            norm_train
+            ])
+        if fourier:
+            test_transform = transforms.Compose(
+                [transforms.ToTensor(),
+                Fourier_noise(xx=xx, yy=yy, eps=args.eps),
+                norm_test])
+        else:
+            test_transform = transforms.Compose(
+                [transforms.ToTensor(),
+                norm_test])    
 
-    train_transform= transforms.Compose(
-        [transforms.Resize(256),
-        transforms.CenterCrop(224),
-        # trainsforms.RandomHorizontalFlip(0.5),
-        # transforms.RandomRotation(3),
-        transforms.ToTensor(),
-        norm_train])
-    if fourier:
-        test_transform = transforms.Compose(
-            [transforms.Resize(256),
-             transforms.CenterCrop(224),
-             transforms.ToTensor(),
-             Fourier_noise(xx=xx, yy=yy, eps=args.eps),
-             norm_test])
-    else:
-        test_transform = transforms.Compose(
+    elif 'ImageNet' in args.dataset:
+        train_transform = transforms.Compose(
             [transforms.Resize(256),
             transforms.CenterCrop(224),
+            transforms.RandomHorizontalFlip(),
             transforms.ToTensor(),
-            norm_test])
+            norm_train])
+        
+        if fourier:
+            test_transform = transforms.Compose(
+                [
+                transforms.ToTensor(),
+                Fourier_noise(xx=xx, yy=yy, eps=args.eps),
+                norm_test
+                ])
+        else:
+            test_transform = transforms.Compose(
+                [
+                transforms.ToTensor(),
+                norm_test
+                ])
 
     return train_transform, test_transform
 
 
 class Fourier_noise(object):
-    def __init__(self, crop=224, xx=0, yy=0 ,eps=4):
+    def __init__(self, crop=32, xx=0, yy=0 , eps=4):
         self.eps = eps
         self.crop = crop
         self.xx = xx

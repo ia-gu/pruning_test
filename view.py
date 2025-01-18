@@ -246,7 +246,6 @@ if __name__ == '__main__':
         # Start the computation
         #--------------------------------------------------------------------------
         crunch(surf_file, model, w, s, d, train_loader, 'train_loss', 'train_acc', comm, rank, args)
-    else:
-        plot_2d.plot_2d_contour(surf_file, 'train_loss', args.vmin, args.vmax, args.vlevel, args.show)
-
-        h52vtp.h5_to_vtp(surf_file, 'train_loss', zmax=10)
+        
+    plot_2d.plot_2d_contour(surf_file, 'train_loss', args.vmin, args.vmax, args.vlevel, args.show)
+    h52vtp.h5_to_vtp(surf_file, 'train_loss', zmax=10)

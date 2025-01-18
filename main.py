@@ -45,6 +45,7 @@ def parse_args():
     parser.add_argument('--dataset', type=str, default='ImageNet')
     parser.add_argument('--seed', type=int, default=42)
     parser.add_argument('--pruning_ratio', type=float, default=0.5)
+    parser.add_argument('--train_method', type=str, default='None')
 
     parser.add_argument('--batch_size', type=int, default=256)
     parser.add_argument('--lr', type=float, default=1e-4)
