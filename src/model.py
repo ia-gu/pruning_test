@@ -1,5 +1,6 @@
 import torch
 import torch.nn as nn
+import torch.nn.functional as F
 from torchvision.models import (
     vgg11_bn, vgg13_bn, vgg16_bn, vgg19_bn, 
     resnet18, resnet34, resnet50, resnet101, resnet152
@@ -9,11 +10,13 @@ class CNNModel(nn.Module):
     def __init__(self, model: str, classes: int = 1000, image_size: int = 224, pretrained=False) -> None:
         super(CNNModel, self).__init__()
         self.model_type = model
+        self.model = None
+
         if classes == 10 or classes == 100:
-            backbone = self._get_resnet(model, classes, pretrained)
+            self.model = self._get_resnet(model, classes, pretrained)
 
         # VGG models
-        if model in ['VGG11', 'VGG13', 'VGG16', 'VGG19']:
+        elif model in ['VGG11', 'VGG13', 'VGG16', 'VGG19']:
             if model == 'VGG11':
                 backbone = vgg11_bn(pretrained=pretrained)
             elif model == 'VGG13':
@@ -77,6 +80,9 @@ class CNNModel(nn.Module):
         Returns:
         - torch.Tensor: Model's output tensor.
         """
+        if self.model is not None:
+            return self.model(x)
+        
         x = self.features(x)            # Feature extraction
         x = x.view(x.size(0), -1)       # Flatten the output
         x = self.classifier(x)          # Apply the classifier
@@ -95,11 +101,6 @@ class CNNModel(nn.Module):
                 return ResNet(Bottleneck, [3, 8, 36, 3], num_classes=num_classes)
             else:
                 raise ValueError(f"Unsupported ResNet model: {model}")
-
-import torch
-import torch.nn as nn
-import torch.nn.functional as F
-
 
 class BasicBlock(nn.Module):
     expansion = 1

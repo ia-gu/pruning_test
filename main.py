@@ -17,20 +17,22 @@ from src.train import train
 from src.get_dataset import build_dataset, build_eval_dataset
 from src.model import CNNModel
 
+
 def main(args):
     set_seed(args)
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-
     train_dataset, nb_classes = build_dataset(args)
     if nb_classes != args.num_classes:
         raise ValueError('Number of classes in dataset and num_classes should be the same')
     eval_dataset, _ = build_eval_dataset(args)
     generator = torch.Generator().manual_seed(args.seed)
-    train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=args.batch_size, shuffle=True, drop_last=True, pin_memory=True, num_workers=2, generator=generator)
+    train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=args.batch_size, shuffle=True, drop_last=False, pin_memory=True, num_workers=2, generator=generator, worker_init_fn=worker_init_fn)
     eval_loader = torch.utils.data.DataLoader(eval_dataset, batch_size=args.batch_size, shuffle=False, drop_last=False, pin_memory=True, num_workers=2)
     criterion = nn.CrossEntropyLoss()
 
-    model = CNNModel(model=args.model, classes=args.num_classes, pretrained=True)
+    model = CNNModel(model=args.model, classes=args.num_classes, pretrained=False)
+    if args.weight_path:
+        model.load_state_dict(torch.load(args.weight_path))
     model = model.to(device)
 
     train(args, model, train_loader, eval_loader, criterion, device)
@@ -45,14 +47,15 @@ def parse_args():
     parser.add_argument('--dataset', type=str, default='ImageNet')
     parser.add_argument('--seed', type=int, default=42)
     parser.add_argument('--pruning_ratio', type=float, default=0.5)
-    parser.add_argument('--train_method', type=str, default='None')
+    parser.add_argument('--train_method', type=str, default=None)
+    parser.add_argument('--weight_path', type=str, default=None)
 
-    parser.add_argument('--batch_size', type=int, default=256)
+    parser.add_argument('--batch_size', type=int, default=128)
     parser.add_argument('--lr', type=float, default=1e-4)
     parser.add_argument('--epochs', type=int, default=200)
     parser.add_argument('--warmup_epochs', type=int, default=5, help='Optional for warmup cosine annealing')
     parser.add_argument('--step', type=int, default=10)
-    parser.add_argument('--importance', type=str, default='L1', help='None: なし, L1: L1ノルム, Hessian: ヘッシアン, HessianParam: パラメータ×ヘッシアン')
+    parser.add_argument('--importance', type=str, default='L1', help='None: なし, L1: パラメータ, Hessian: ヘッシアン, HessianParam: パラメータ×ヘッシアン')
 
     parser.add_argument('--wandb_project', type=str, default='pruning')
     parser.add_argument('--wandb_run', type=str, default='debug')
@@ -68,6 +71,9 @@ def set_seed(args):
     random.seed(seed)
     cudnn.deterministic = True
     cudnn.benchmark = False
+
+def worker_init_fn(worker_id):
+    np.random.seed(np.random.get_state()[1][0] + worker_id)
 
 if __name__ == '__main__':
 

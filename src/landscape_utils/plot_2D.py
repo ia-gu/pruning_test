@@ -84,6 +84,8 @@ def plot_2d_contour(surf_file, surf_name='train_loss', vmin=0.1, vmax=10, vlevel
     ax.set_xlabel('X')
     ax.set_ylabel('Y')
     ax.set_zlabel('Z')
+    # Zの範囲を設定
+    ax.set_zlim(vmin, vmax)
 
     # グリッドを表示
     ax.grid(True)

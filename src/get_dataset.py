@@ -103,35 +103,27 @@ def build_test_dataset(args):
 
 def build_transform(args, xx=None, yy=None, fourier=False):
     if args.dataset == 'CIFAR100':
-        norm_train = transforms.Normalize(mean=[0.5071, 0.4867, 0.4408], std=[0.2675, 0.2565, 0.2761])
-        norm_test = transforms.Normalize(mean=[0.5071, 0.4867, 0.4408], std=[0.2675, 0.2565, 0.2761])
+        norm = transforms.Normalize(mean=[0.5071, 0.4867, 0.4408], std=[0.2675, 0.2565, 0.2761])
     elif args.dataset == 'CIFAR10':
-        norm_train = transforms.Normalize(mean=[0.4914, 0.4822, 0.4465], std=[0.2023, 0.1994, 0.2010])
-        norm_test = transforms.Normalize(mean=[0.4914, 0.4822, 0.4465], std=[0.2023, 0.1994, 0.2010])
+        norm = transforms.Normalize(mean=[0.4914, 0.4822, 0.4465], std=[0.2023, 0.1994, 0.2010])
     elif args.dataset == 'ImageNet':
-        norm_train = transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
-        norm_test = transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
+        norm = transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
     elif args.dataset == 'TINY':
-        norm_train = transforms.Normalize(mean=[0.4802, 0.4481, 0.3975], std=[0.2302, 0.2265, 0.2262])
-        norm_test = transforms.Normalize(mean=[0.4802, 0.4481, 0.3975], std=[0.2302, 0.2265, 0.2262])
+        norm = transforms.Normalize(mean=[0.4802, 0.4481, 0.3975], std=[0.2302, 0.2265, 0.2262])
     
     if 'CIFAR' in args.dataset:
         train_transform= transforms.Compose(
             [
-            transforms.RandomCrop(size=(32, 32), padding=4),
+            transforms.RandomCrop(32, padding=4),
             transforms.RandomHorizontalFlip(),
             transforms.ToTensor(),
-            norm_train
+            norm
             ])
         if fourier:
             test_transform = transforms.Compose(
-                [transforms.ToTensor(),
-                Fourier_noise(xx=xx, yy=yy, eps=args.eps),
-                norm_test])
+                [transforms.ToTensor(), Fourier_noise(xx=xx, yy=yy, eps=args.eps), norm])
         else:
-            test_transform = transforms.Compose(
-                [transforms.ToTensor(),
-                norm_test])
+            test_transform = transforms.Compose([transforms.ToTensor(), norm])
             
     elif 'TINY' in args.dataset:
         train_transform= transforms.Compose(
@@ -139,17 +131,13 @@ def build_transform(args, xx=None, yy=None, fourier=False):
             transforms.RandomCrop(size=(64, 64), padding=4),
             transforms.RandomHorizontalFlip(),
             transforms.ToTensor(),
-            norm_train
+            norm
             ])
         if fourier:
             test_transform = transforms.Compose(
-                [transforms.ToTensor(),
-                Fourier_noise(xx=xx, yy=yy, eps=args.eps),
-                norm_test])
+                [transforms.ToTensor(), Fourier_noise(xx=xx, yy=yy, eps=args.eps), norm])
         else:
-            test_transform = transforms.Compose(
-                [transforms.ToTensor(),
-                norm_test])    
+            test_transform = transforms.Compose([transforms.ToTensor(), norm])    
 
     elif 'ImageNet' in args.dataset:
         train_transform = transforms.Compose(
@@ -157,21 +145,13 @@ def build_transform(args, xx=None, yy=None, fourier=False):
             transforms.CenterCrop(224),
             transforms.RandomHorizontalFlip(),
             transforms.ToTensor(),
-            norm_train])
+            norm])
         
         if fourier:
             test_transform = transforms.Compose(
-                [
-                transforms.ToTensor(),
-                Fourier_noise(xx=xx, yy=yy, eps=args.eps),
-                norm_test
-                ])
+                [transforms.ToTensor(), Fourier_noise(xx=xx, yy=yy, eps=args.eps), norm])
         else:
-            test_transform = transforms.Compose(
-                [
-                transforms.ToTensor(),
-                norm_test
-                ])
+            test_transform = transforms.Compose([transforms.ToTensor(), norm])
 
     return train_transform, test_transform
 
