@@ -8,11 +8,11 @@ def build_dataset(args):
     train_transform, _ = build_transform(args)
 
     if args.dataset == 'CIFAR100':
-        data_path = '~/dataset'
+        data_path = '/localdata'
         dataset = datasets.CIFAR100(data_path, train=True, transform=train_transform, download=True)
         nb_classes = 100
     elif args.dataset == 'CIFAR10':
-        data_path = '~/dataset'
+        data_path = '/localdata'
         dataset = datasets.CIFAR10(data_path, train=True, transform=train_transform, download=True)
         nb_classes = 10
     elif args.dataset == 'ImageNet':
@@ -20,7 +20,7 @@ def build_dataset(args):
         dataset = datasets.ImageFolder(data_path, transform=train_transform)
         nb_classes = 1000
     elif args.dataset == 'TINY':
-        data_path = '~/dataset/Tiny-ImageNet/tiny-imagenet-200/train'
+        data_path = '/localdata/Tiny-ImageNet/tiny-imagenet-200/train'
         dataset = datasets.ImageFolder(data_path, transform=train_transform)
         nb_classes = 200
     print(args.dataset, nb_classes)
@@ -31,11 +31,12 @@ def build_eval_dataset(args, xx=None, yy=None, fourier=False):
     _, test_transform = build_transform(args, xx, yy, fourier)
 
     if args.dataset == 'CIFAR100':
-        data_path = '~/dataset'
+        data_path = '/localdata'
         dataset = datasets.CIFAR100(data_path, train=False, transform=test_transform, download=True)
         nb_classes = 100
     elif args.dataset == 'CIFAR10':
-        data_path = '~/dataset'
+        data_path = '/localdata'
+        # dataset = datasets.ImageFolder(data_path, transform=test_transform)
         dataset = datasets.CIFAR10(data_path, train=False, transform=test_transform, download=True)
         nb_classes = 10
     elif args.dataset == 'ImageNet':
@@ -43,7 +44,7 @@ def build_eval_dataset(args, xx=None, yy=None, fourier=False):
         dataset = datasets.ImageFolder(data_path, transform=test_transform)
         nb_classes = 1000
     elif args.dataset == 'TINY':
-        data_path = '~/dataset/Tiny-ImageNet/tiny-imagenet-200/val'
+        data_path = '/localdata/Tiny-ImageNet/tiny-imagenet-200/val'
         dataset = datasets.ImageFolder(data_path, transform=test_transform)
         nb_classes = 200
     print(args.dataset, nb_classes)
@@ -54,28 +55,28 @@ def build_test_dataset(args):
     _, test_transform = build_transform(args)
 
     if args.dataset == 'CIFAR10':
-        root = '~/dataset'
+        root = '/localdata'
         dataset_normal = datasets.CIFAR10(root, train=False, transform=test_transform, download=True)
         root = os.path.join(root, 'CIFAR-10-C-ImageFolder')
         print(root)
         
     elif args.dataset == 'CIFAR100':
-        root = '~/dataset'
+        root = '/localdata'
         dataset_normal = datasets.CIFAR100(root, train=False, transform=test_transform, download=True)
         root = os.path.join(root, 'CIFAR-100-C-ImageFolder')
         print(root)
     
     elif args.dataset == 'ImageNet':
-        root = '/data01/imagenet/val_256'
-        dataset_normal = datasets.ImageFolder(root, transform=test_transform)
-        root = '/data/imagenet_family/imagenet-c'
         raise NotImplementedError
+        # root = '/data01/imagenet/val_256'
+        # dataset_normal = datasets.ImageFolder(root, transform=test_transform)
+        # root = '/data/imagenet_family/imagenet-c'
 
 
     elif args.dataset == 'TINY':
-        root = '~/dataset/Tiny-ImageNet/tiny-imagenet-200/val'
+        root = '/localdata/Tiny-ImageNet/tiny-imagenet-200/val'
         dataset_normal = datasets.ImageFolder(root, transform=test_transform)
-        root = '~/dataset/Tiny-ImageNet-C-ImageFolder'
+        root = '/localdata/Tiny-ImageNet-C-ImageFolder'
         print(root)
 
     dataset_brightness = datasets.ImageFolder(os.path.join(root, 'brightness'), transform=test_transform)
@@ -114,12 +115,13 @@ def build_transform(args, xx=None, yy=None, fourier=False):
     if 'CIFAR' in args.dataset:
         train_transform= transforms.Compose(
             [
-            transforms.RandomCrop(32, padding=4),
+            transforms.RandomCrop(32, padding=4, fill=128),
             transforms.RandomHorizontalFlip(),
             transforms.ToTensor(),
             norm
             ])
         if fourier:
+            print('fourier noise')
             test_transform = transforms.Compose(
                 [transforms.ToTensor(), Fourier_noise(xx=xx, yy=yy, eps=args.eps), norm])
         else:
@@ -128,12 +130,13 @@ def build_transform(args, xx=None, yy=None, fourier=False):
     elif 'TINY' in args.dataset:
         train_transform= transforms.Compose(
             [
-            transforms.RandomCrop(size=(64, 64), padding=4),
+            transforms.RandomCrop(size=(64, 64), padding=4, fill=128),
             transforms.RandomHorizontalFlip(),
             transforms.ToTensor(),
             norm
             ])
         if fourier:
+            print('fourier noise')
             test_transform = transforms.Compose(
                 [transforms.ToTensor(), Fourier_noise(xx=xx, yy=yy, eps=args.eps), norm])
         else:
@@ -148,11 +151,13 @@ def build_transform(args, xx=None, yy=None, fourier=False):
             norm])
         
         if fourier:
+            print('fourier noise')
             test_transform = transforms.Compose(
                 [transforms.ToTensor(), Fourier_noise(xx=xx, yy=yy, eps=args.eps), norm])
         else:
             test_transform = transforms.Compose([transforms.ToTensor(), norm])
-
+    print(f'{train_transform=}')
+    print(f'{test_transform=}')
     return train_transform, test_transform
 
 

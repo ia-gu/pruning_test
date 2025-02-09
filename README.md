@@ -7,11 +7,24 @@ Pytorchのpruneライブラリをベースに枝刈りを行うテストコー�
 - L1: L1ノルムの強度枝刈り
 - Hessian: Hessian対角行列
 - HesianParam: Hessian × L1ノルム
+※ 完全なHessianはメモリの関係で不可能
 
 ## Evaluation
 - corruption data performance ⇒ eval.sh
 - loss landscape ⇒ view.sh
 - fourier heat map ⇒ fourier.sh
+
+引数
+| Name | Roll|
+|----|----|
+| model | モデル：ResNetかVGG |
+| dataset | データセット：CIFAR，Tiny，ImageNet（クラス数が合わないとエラー） |
+| pruning_ratio | 枝刈りする割合：1－疎度 |
+| optimizer | 最適化手法：AdamかSGD |
+| train_method | 学習方法：普通か，敵対的（AT） |
+| weight_path | 学習済み重みから刈る場合は入れる |
+| step | 枝刈りのステップ：1なら1epochごと |
+| importance | 重要度：L1，Hessian，HessianParam |
 
 
 

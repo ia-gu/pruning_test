@@ -9,10 +9,14 @@ import wandb
 from src.prune_model import prune_model
 
 def train(args, model, train_loader, eval_loader, criterion, device):
-    # optimizer = torch.optim.Adam(model.parameters(), lr=args.lr)
-    optimizer = torch.optim.SGD(model.parameters(), lr=args.lr, momentum=0.9, weight_decay=2e-4, nesterov=True)
-    # scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=args.epochs)
-    scheduler = torch.optim.lr_scheduler.MultiStepLR(optimizer, gamma=0.2, milestones=[60, 120, 160, 190])
+    if args.optimizer == 'SGD':
+        optimizer = torch.optim.SGD(model.parameters(), lr=args.lr, momentum=0.9, weight_decay=5e-4, nesterov=True)
+        scheduler = torch.optim.lr_scheduler.MultiStepLR(optimizer, gamma=0.2, milestones=[60, 120, 160, 190])
+    elif args.optimizer == 'Adam':
+        optimizer = torch.optim.Adam(model.parameters(), lr=args.lr)
+        scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=args.epochs)
+    else:
+        raise ValueError('Optimizer should be either SGD or Adam')
     # warmup scheduler
     # scheduler = torch.optim.lr_scheduler.LambdaLR(optimizer, lr_lambda=lambda epoch: epoch/args.warmup_epochs if epoch < args.warmup_epochs else 0.5 * (1 + math.cos(math.pi * (epoch - args.warmup_epochs) / (args.epochs - args.warmup_epochs))))
     
@@ -37,7 +41,7 @@ def train(args, model, train_loader, eval_loader, criterion, device):
             pruning_ratio += (args.pruning_ratio / num_steps)
             model, tmp_model = pruning(args, epoch, model, train_loader, eval_loader, criterion, pruning_ratio, device)
             # save model
-            torch.save(tmp_model.state_dict(), os.path.join(args.output_path, 'ckpt', str(epoch+1)+'.pth'))
+            torch.save(tmp_model.state_dict(), os.path.join(args.output_path, 'ckpt', 'checkpoint.pth'))
             del tmp_model
             gc.collect()
 
@@ -86,7 +90,7 @@ def train_epoch(epoch, model, loader, criterion, device, optimizer):
 
     return round(train_loss/len(loader), 3), round(100.*correct/total, 3)
 
-def adversarial_train_epoch(epoch, model, loader, criterion, device, optimizer, scheduler):
+def adversarial_train_epoch(epoch, model, loader, criterion, device, optimizer):
     model.train()
     train_loss = 0
     correct = 0
@@ -113,7 +117,6 @@ def adversarial_train_epoch(epoch, model, loader, criterion, device, optimizer, 
             if hasattr(module, 'weight_mask'):
                 with torch.no_grad():
                     module.weight *= module.weight_mask
-        scheduler.step()
 
         train_loss += loss.item()
         _, predicted = adv_outputs.max(1)

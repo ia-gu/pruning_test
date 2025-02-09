@@ -26,10 +26,11 @@ def main(args):
 
     dataset_types = ['clean', 'brightness', 'contrast', 'defocus_blur', 'elastic_transform', 'fog', 'frost', 'gaussian_blur', 'gaussian_noise', 'glass_blur', 
                      'impulse_noise', 'jpeg_compression', 'motion_blur', 'pixelate', 'saturate', 'shot_noise', 'snow', 'spatter', 'speckle_noise', 'zoom_blur']
+    if not len(test_datasets) == len(dataset_types):
+        raise ValueError('Datasets and dataset_types should have the same length')
+
     for i in range(len(test_datasets)):
-        if not len(test_datasets) == len(dataset_types):
-            raise ValueError('Datasets and dataset_types should have the same length')
-        if test_datasets[i] == None:
+        if test_datasets[i] is None:
             continue
         test_data_loader = torch.utils.data.DataLoader(
             test_datasets[i],
@@ -74,7 +75,7 @@ def evaluate_robustness(data_loader, model, device, args, dataset_type):
     elif args.dataset == 'TINY':
         classes = [i for i in range(200)]
     else:
-        classes = []
+        classes = [i for i in range(args.num_classes)]
 
     class_acc_meter = ClassAccuracyMeter(len(classes))
 

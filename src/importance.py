@@ -1,11 +1,12 @@
 import torch
 import torch.nn as nn
 import torch.nn.utils.prune as prune
+from scipy.sparse.linalg import LinearOperator, eigsh
 
 def hessian_pruning(model, amount, criterion, train_loader):
     # Hessian計算
     hessian_diag_approx = _compute_hessian_diagonal_approx(
-        model, train_loader, criterion, device=torch.device('cuda')
+        model, train_loader, criterion
     )
     # プルーニング
     return _prune_with_hessian_diag_approx(model, hessian_diag_approx, sparsity=amount)
@@ -13,10 +14,11 @@ def hessian_pruning(model, amount, criterion, train_loader):
 def hessian_param_pruning(model, amount, criterion, train_loader):
     # Hessian計算
     hessian_diag_approx = _compute_hessian_diagonal_approx(
-        model, train_loader, criterion, device=torch.device('cuda')
+        model, train_loader, criterion
     )
     # プルーニング
     return _prune_with_hessian_diag_approx_param(model, hessian_diag_approx, sparsity=amount)
+
 
 def _prune_with_hessian_diag_approx(model, hessian_diag_list, sparsity=0.2):
     diag_scores = []
@@ -51,6 +53,7 @@ def _prune_with_hessian_diag_approx(model, hessian_diag_list, sparsity=0.2):
         prune.custom_from_mask(module, name, mask)
 
     return model
+
 
 def _prune_with_hessian_diag_approx_param(model, hessian_diag_list, sparsity=0.2):
     diag_scores = []; param_list = []
@@ -89,19 +92,19 @@ def _prune_with_hessian_diag_approx_param(model, hessian_diag_list, sparsity=0.2
 
     return model
 
-def _compute_hessian_diagonal_approx(model, dataloader, loss_fn, device='cpu'):
-    model.to(device)
+def _compute_hessian_diagonal_approx(model, dataloader, loss_fn):
+    model.to(torch.device('cuda'))
     model.eval()
 
     hessian_diag = []
     for param in model.parameters():
-        hessian_diag.append(torch.zeros_like(param, device=device))
+        hessian_diag.append(torch.zeros_like(param, device=torch.device('cuda')))
 
     total_samples = 0
     
     with torch.no_grad():
         for inputs, targets in dataloader:
-            inputs, targets = inputs.to(device), targets.to(device)
+            inputs, targets = inputs.to(torch.device('cuda')), targets.to(torch.device('cuda'))
             batch_size = inputs.size(0)
             total_samples += batch_size
             # パラメータ更新は行わず，勾配グラフのみを構築
@@ -121,7 +124,6 @@ def _compute_hessian_diagonal_approx(model, dataloader, loss_fn, device='cpu'):
         hessian_diag[i] /= float(total_samples)
 
     return hessian_diag
-
 
 # HACK torch.prune継承のお試し
 class L1L2CombinedPruning(prune.BasePruningMethod):

@@ -20,7 +20,7 @@ def plot_fig(args, scores):
     ax =sns.heatmap(
         scores,
         vmin=0,
-        vmax=1.0,
+        vmax=0.3,
         cmap="jet",
         cbar=True,
         xticklabels=False,
