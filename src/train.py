@@ -1,20 +1,25 @@
 from tqdm import tqdm
 import torch
 import torch.nn.utils.prune as prune
-
 import os
 import gc
 import wandb
 
+from src.utils import ASAM, WarmupCosineScheduler
 from src.prune_model import prune_model
 
 def train(args, model, train_loader, eval_loader, criterion, device):
+    minimizer = None
     if args.optimizer == 'SGD':
         optimizer = torch.optim.SGD(model.parameters(), lr=args.lr, momentum=0.9, weight_decay=5e-4, nesterov=True)
         scheduler = torch.optim.lr_scheduler.MultiStepLR(optimizer, gamma=0.2, milestones=[60, 120, 160, 190])
     elif args.optimizer == 'Adam':
         optimizer = torch.optim.Adam(model.parameters(), lr=args.lr)
-        scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=args.epochs)
+        scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=args.epochs+20)
+    elif args.optimizer == 'ASAM':
+        optimizer = torch.optim.SGD(model.parameters(), lr=args.lr, momentum=0.875, weight_decay=3.05e-5)
+        minimizer = ASAM(optimizer, model, rho=0.5, eta=0.01)
+        scheduler = WarmupCosineScheduler(optimizer, 8, args.epochs+20, base_lr=1.024)
     else:
         raise ValueError('Optimizer should be either SGD or Adam')
     # warmup scheduler
@@ -31,7 +36,7 @@ def train(args, model, train_loader, eval_loader, criterion, device):
     num_steps = args.epochs // args.step
     pruning_ratio = 0.0
     for epoch in range(args.epochs):
-        train_loss, train_accuracy = trainer(epoch, model, train_loader, criterion, device, optimizer)
+        train_loss, train_accuracy = trainer(epoch, model, train_loader, criterion, device, optimizer, minimizer)
         eval_loss, eval_accuracy = eval_epoch(epoch, model, criterion, eval_loader, device)
         with open(os.path.join(args.output_path, 'result.txt'), 'a') as f:
             f.write(f'Epoch: |{epoch+1}| Train_Loss: |{train_loss}| Train_Accuracy: |{train_accuracy}| Eval_Loss: |{eval_loss}| Eval_Accuracy: |{eval_accuracy}|\n')
@@ -46,7 +51,7 @@ def train(args, model, train_loader, eval_loader, criterion, device):
             gc.collect()
 
     for epoch in range(args.epochs, args.epochs+20):
-        train_loss, train_accuracy = trainer(epoch, model, train_loader, criterion, device, optimizer)
+        train_loss, train_accuracy = trainer(epoch, model, train_loader, criterion, device, optimizer, minimizer)
         eval_loss, eval_accuracy = eval_epoch(epoch, model, criterion, eval_loader, device)
         with open(os.path.join(args.output_path, 'result.txt'), 'a') as f:
             f.write(f'Epoch: |{epoch+1}| Train_Loss: |{train_loss}| Train_Accuracy: |{train_accuracy}| Eval_Loss: |{eval_loss}| Eval_Accuracy: |{eval_accuracy}|\n')
@@ -57,7 +62,7 @@ def train(args, model, train_loader, eval_loader, criterion, device):
             prune.remove(module, 'weight')
     torch.save(model.state_dict(), os.path.join(args.output_path, 'ckpt', 'final_weight.pth'))
 
-def train_epoch(epoch, model, loader, criterion, device, optimizer):
+def train_epoch(epoch, model, loader, criterion, device, optimizer, minimizer=None):
     model.train()
     train_loss = 0
     correct = 0
@@ -71,6 +76,11 @@ def train_epoch(epoch, model, loader, criterion, device, optimizer):
         outputs = model(inputs)
         loss = criterion(outputs, targets)
         loss.backward()
+        if minimizer: 
+            minimizer.ascent_step()
+            criterion(model(inputs), targets).mean().backward()
+            minimizer.descent_step()
+
         for module in model.modules():
             if hasattr(module, 'weight_mask'):
                 with torch.no_grad():
@@ -90,7 +100,7 @@ def train_epoch(epoch, model, loader, criterion, device, optimizer):
 
     return round(train_loss/len(loader), 3), round(100.*correct/total, 3)
 
-def adversarial_train_epoch(epoch, model, loader, criterion, device, optimizer):
+def adversarial_train_epoch(epoch, model, loader, criterion, device, optimizer, minimizer=None):
     model.train()
     train_loss = 0
     correct = 0
@@ -196,3 +206,4 @@ class LinfPGDAttack(object):
             x = torch.clamp(x, 0, 1)
             
         return x
+    
