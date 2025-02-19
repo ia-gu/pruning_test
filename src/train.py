@@ -11,19 +11,18 @@ from src.prune_model import prune_model
 def train(args, model, train_loader, eval_loader, criterion, device):
     minimizer = None
     if args.optimizer == 'SGD':
-        optimizer = torch.optim.SGD(model.parameters(), lr=args.lr, momentum=0.9, weight_decay=5e-4, nesterov=True)
+        optimizer = torch.optim.SGD(model.parameters(), lr=args.lr, momentum=args.momentum, weight_decay=args.weight_decay, nesterov=True)
         scheduler = torch.optim.lr_scheduler.MultiStepLR(optimizer, gamma=0.2, milestones=[60, 120, 160, 190])
     elif args.optimizer == 'Adam':
         optimizer = torch.optim.Adam(model.parameters(), lr=args.lr)
         scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=args.epochs+20)
     elif args.optimizer == 'ASAM':
-        optimizer = torch.optim.SGD(model.parameters(), lr=args.lr, momentum=0.875, weight_decay=3.05e-5)
-        minimizer = ASAM(optimizer, model, rho=0.5, eta=0.01)
-        scheduler = WarmupCosineScheduler(optimizer, 8, args.epochs+20, base_lr=1.024)
+        optimizer = torch.optim.SGD(model.parameters(), lr=args.lr, momentum=args.momentum, weight_decay=args.weight_decay)
+        minimizer = ASAM(optimizer, model, rho=args.rho, eta=0.01)
+        # scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=args.epochs+20)
+        scheduler = WarmupCosineScheduler(optimizer, warmup_epochs=8, total_epochs=args.epochs+20, max_lr=args.lr)
     else:
         raise ValueError('Optimizer should be either SGD or Adam')
-    # warmup scheduler
-    # scheduler = torch.optim.lr_scheduler.LambdaLR(optimizer, lr_lambda=lambda epoch: epoch/args.warmup_epochs if epoch < args.warmup_epochs else 0.5 * (1 + math.cos(math.pi * (epoch - args.warmup_epochs) / (args.epochs - args.warmup_epochs))))
     
 
     if args.train_method == 'AT':
@@ -42,7 +41,7 @@ def train(args, model, train_loader, eval_loader, criterion, device):
             f.write(f'Epoch: |{epoch+1}| Train_Loss: |{train_loss}| Train_Accuracy: |{train_accuracy}| Eval_Loss: |{eval_loss}| Eval_Accuracy: |{eval_accuracy}|\n')
         wandb.log({'epoch': epoch+1, 'Train_Loss': train_loss, 'Train_Accuracy': train_accuracy, 'Eval_Loss': eval_loss, 'Eval_Accuracy': eval_accuracy})
         scheduler.step()
-        if (epoch+1) % args.step == 0 and args.importance != 'None':
+        if ((epoch+1)%args.step)==0 and args.importance!='None' and args.warmup_epochs<(epoch+1):
             pruning_ratio += (args.pruning_ratio / num_steps)
             model, tmp_model = pruning(args, epoch, model, train_loader, eval_loader, criterion, pruning_ratio, device)
             # save model

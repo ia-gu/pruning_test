@@ -156,8 +156,6 @@ def build_transform(args, xx=None, yy=None, fourier=False):
                 [transforms.ToTensor(), Fourier_noise(xx=xx, yy=yy, eps=args.eps), norm])
         else:
             test_transform = transforms.Compose([transforms.ToTensor(), norm])
-    print(f'{train_transform=}')
-    print(f'{test_transform=}')
     return train_transform, test_transform
 
 

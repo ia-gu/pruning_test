@@ -50,11 +50,16 @@ def parse_args():
     parser.add_argument('--optimizer', type=str, default='Adam')
     parser.add_argument('--train_method', type=str, default='None')
     parser.add_argument('--weight_path', type=str, default=None)
+    parser.add_argument('--momentum', type=float, default=0.9)
+    parser.add_argument('--weight_decay', type=float, default=5e-4)
+    parser.add_argument('--rho', type=float, default=0.5)
+    parser.add_argument('--warmup_epochs', type=int, default=0, help='Optimal for warmup pruning schedule')
+    parser.add_argument('--prune_mode', type=str, default='epoch')
 
     parser.add_argument('--batch_size', type=int, default=128)
     parser.add_argument('--lr', type=float, default=1e-4)
     parser.add_argument('--epochs', type=int, default=200)
-    parser.add_argument('--warmup_epochs', type=int, default=0, help='Optional for warmup cosine annealing')
+    parser.add_argument('--cosine_warmup_epochs', type=int, default=0, help='Optional for warmup cosine annealing')
     parser.add_argument('--step', type=int, default=10)
     parser.add_argument('--importance', type=str, default='None', help='None: なし, L1: パラメータ, Hessian: ヘッシアン, HessianParam: パラメータ×ヘッシアン')
 
