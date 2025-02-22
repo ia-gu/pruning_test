@@ -28,8 +28,9 @@ def plot_fig(args, scores):
     )
     #sns.set(font_scale = 2)
     ax.collections[0].colorbar.set_label('Error')
-    plt.savefig(args.weight_path.replace(args.weight_path.split('/')[-1], 'fourier_heat_map.png'), dpi=100)
-    plt.savefig(args.weight_path.replace(args.weight_path.split('/')[-1], 'fourier_heat_map.svg'), dpi=100)
+    os.makedirs(args.weight_path.replace(args.weight_path.split('/')[-1], os.path.join('fourier_heat_map', args.epoch)), exist_ok=True)
+    plt.savefig(args.weight_path.replace(args.weight_path.split('/')[-1], os.path.join('fourier_heat_map', args.epoch, 'fourier_heat_map.png')), dpi=100)
+    plt.savefig(args.weight_path.replace(args.weight_path.split('/')[-1], os.path.join('fourier_heat_map', args.epoch, 'fourier_heat_map.svg')), dpi=100)
     plt.clf()
     plt.close()
 

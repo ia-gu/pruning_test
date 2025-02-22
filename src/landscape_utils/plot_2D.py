@@ -46,12 +46,20 @@ def plot_2d_contour(surf_file, surf_name='train_loss', vmin=0.1, vmax=10, vlevel
     plt.clabel(CS, inline=1, fontsize=8)
     fig.savefig(surf_file + '_' + surf_name + '_2dcontour' + '.pdf', dpi=300,
                 bbox_inches='tight', format='pdf')
+    fig.savefig(surf_file + '_' + surf_name + '_2dcontour' + '.png', dpi=300,
+                bbox_inches='tight', format='png')
+    fig.savefig(surf_file + '_' + surf_name + '_2dcontour' + '.svg', dpi=300,
+                bbox_inches='tight', format='svg')
 
     fig = plt.figure()
     print(surf_file + '_' + surf_name + '_2dcontourf' + '.pdf')
     CS = plt.contourf(X, Y, Z, cmap='summer', levels=np.arange(vmin, vmax, vlevel))
     fig.savefig(surf_file + '_' + surf_name + '_2dcontourf' + '.pdf', dpi=300,
                 bbox_inches='tight', format='pdf')
+    fig.savefig(surf_file + '_' + surf_name + '_2dcontourf' + '.png', dpi=300,
+                bbox_inches='tight', format='png')
+    fig.savefig(surf_file + '_' + surf_name + '_2dcontourf' + '.svg', dpi=300,
+                bbox_inches='tight', format='svg')
 
     # --------------------------------------------------------------------
     # Plot 2D heatmaps
@@ -61,6 +69,8 @@ def plot_2d_contour(surf_file, surf_name='train_loss', vmin=0.1, vmax=10, vlevel
                            xticklabels=False, yticklabels=False)
     sns_plot.invert_yaxis()
     sns_plot.get_figure().savefig(surf_file + '_' + surf_name + '_2dheat.pdf', dpi=300, bbox_inches='tight', format='pdf')
+    sns_plot.get_figure().savefig(surf_file + '_' + surf_name + '_2dheat.png', dpi=300, bbox_inches='tight', format='png')
+    sns_plot.get_figure().savefig(surf_file + '_' + surf_name + '_2dheat.svg', dpi=300, bbox_inches='tight', format='svg')
 
     # vmax, vminで切り落とす
     Z = np.clip(Z, vmin, vmax)
@@ -93,6 +103,8 @@ def plot_2d_contour(surf_file, surf_name='train_loss', vmin=0.1, vmax=10, vlevel
     # カラーバー
     fig.colorbar(surf, shrink=0.5, aspect=5)
     fig.savefig(surf_file + '_' + surf_name + '_3dsurface.pdf', dpi=300, bbox_inches='tight', format='pdf')
+    fig.savefig(surf_file + '_' + surf_name + '_3dsurface.png', dpi=300, bbox_inches='tight', format='png')
+    fig.savefig(surf_file + '_' + surf_name + '_3dsurface.svg', dpi=300, bbox_inches='tight', format='svg')
 
     f.close()
 
@@ -119,6 +131,8 @@ def plot_trajectory(proj_file, dir_file, show=False):
         f2.close()
 
     fig.savefig(proj_file + '.pdf', dpi=300, bbox_inches='tight', format='pdf')
+    fig.savefig(proj_file + '.png', dpi=300, bbox_inches='tight', format='png')
+    fig.savefig(proj_file + '.svg', dpi=300, bbox_inches='tight', format='svg')
     if show: plt.show()
 
 
@@ -159,6 +173,10 @@ def plot_contour_trajectory(surf_file, dir_file, proj_file, surf_name='loss_vals
     plt.clabel(CS2, inline=1, fontsize=6)
     fig.savefig(proj_file + '_' + surf_name + '_2dcontour_proj.pdf', dpi=300,
                 bbox_inches='tight', format='pdf')
+    fig.savefig(proj_file + '_' + surf_name + '_2dcontour_proj.png', dpi=300,
+                bbox_inches='tight', format='png')
+    fig.savefig(proj_file + '_' + surf_name + '_2dcontour_proj.svg', dpi=300,
+                bbox_inches='tight', format='svg')
     pf.close()
     if show: plt.show()
 
@@ -188,6 +206,10 @@ def plot_2d_eig_ratio(surf_file, val_1='min_eig', val_2='max_eig', show=False):
     sns_plot.invert_yaxis()
     sns_plot.get_figure().savefig(surf_file + '_' + val_1 + '_' + val_2 + '_abs_ratio_heat_sns.pdf',
                                   dpi=300, bbox_inches='tight', format='pdf')
+    sns_plot.get_figure().savefig(surf_file + '_' + val_1 + '_' + val_2 + '_abs_ratio_heat_sns.png',
+                                    dpi=300, bbox_inches='tight', format='png')
+    sns_plot.get_figure().savefig(surf_file + '_' + val_1 + '_' + val_2 + '_abs_ratio_heat_sns.svg',
+                                    dpi=300, bbox_inches='tight', format='svg')
 
     # Plot 2D heatmaps with color bar using seaborn
     ratio = np.divide(Z1, Z2)
@@ -197,6 +219,10 @@ def plot_2d_eig_ratio(surf_file, val_1='min_eig', val_2='max_eig', show=False):
     sns_plot.invert_yaxis()
     sns_plot.get_figure().savefig(surf_file + '_' + val_1 + '_' + val_2 + '_ratio_heat_sns.pdf',
                                   dpi=300, bbox_inches='tight', format='pdf')
+    sns_plot.get_figure().savefig(surf_file + '_' + val_1 + '_' + val_2 + '_ratio_heat_sns.png',
+                                  dpi=300, bbox_inches='tight', format='png')
+    sns_plot.get_figure().savefig(surf_file + '_' + val_1 + '_' + val_2 + '_ratio_heat_sns.svg',
+                                  dpi=300, bbox_inches='tight', format='svg')
     f.close()
     if show: plt.show()
 

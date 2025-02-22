@@ -11,23 +11,26 @@ from src.prune_model import prune_model
 
 def train_iterative(args, model, train_loader, eval_loader, criterion, device):
     if args.optimizer == 'SGD':
+        print('Optimizer: SGD')
         optimizer = torch.optim.SGD(model.parameters(), lr=args.lr, momentum=args.momentum, weight_decay=args.weight_decay, nesterov=True)
         minimizer = None
         scheduler = torch.optim.lr_scheduler.MultiStepLR(optimizer, gamma=0.2, milestones=[60, 120, 160, 190])
     elif args.optimizer == 'Adam':
+        print('Optimizer: Adam')
         optimizer = torch.optim.Adam(model.parameters(), lr=args.lr)
         minimizer = None
         scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=args.epochs)
     elif args.optimizer == 'ASAM':
+        print('Optimizer: ASAM')
         optimizer = torch.optim.SGD(model.parameters(), lr=args.lr, momentum=args.momentum, weight_decay=args.weight_decay)
         minimizer = ASAM(optimizer, model, rho=args.rho, eta=0.01)
-        scheduler = WarmupCosineScheduler(optimizer, warmup_epochs=8, total_epochs=args.epochs, base_lr=args.lr)
+        scheduler = WarmupCosineScheduler(optimizer, warmup_epochs=8, total_epochs=args.epochs, max_lr=args.lr)
     else:
         raise ValueError('Optimizer should be either SGD, Adam or ASAM')
     
-    # ----- ウォームアップフェーズ：最初の10エポックはプルーニングなし -----
-    warmup_epochs = 10
-    total_epochs = args.epochs  # 例：90エポック（=10エポック＋80エポック）
+    # ----- ウォームアップフェーズ -----
+    warmup_epochs = args.warmup_epochs
+    total_epochs = args.epochs
     for epoch in range(warmup_epochs):
         train_loss, train_accuracy = train_epoch(epoch, model, train_loader, criterion, device, optimizer, minimizer)
         eval_loss, eval_accuracy = eval_epoch(epoch, model, criterion, eval_loader, device)
@@ -47,7 +50,7 @@ def train_iterative(args, model, train_loader, eval_loader, criterion, device):
     # ----- プルーニングフェーズ：ウォームアップ後、80エポックでプルーニングを実施 -----
     fine_tune_epochs = total_epochs - warmup_epochs  # 例：80エポック
     total_finetune_iterations = fine_tune_epochs * len(train_loader)
-    R = total_finetune_iterations // 30  # 総プルーニング回数（30イテレーションごと）
+    R = total_finetune_iterations // args.step  # 総プルーニング回数
     prune_iter_count = 0
     global_finetune_iter = 0
     for epoch in range(warmup_epochs, total_epochs):
@@ -86,8 +89,8 @@ def train_iterative(args, model, train_loader, eval_loader, criterion, device):
                 f"Epoch {epoch+1} | Iter {global_finetune_iter} | Loss: {round(loss.item(),3)} | Acc: {round(100.*correct/total,3)}"
             )
 
-            # 30イテレーションごとにプルーニングを実施
-            if global_finetune_iter % 30 == 0:
+            # stepイテレーションごとにプルーニングを実施
+            if global_finetune_iter % args.step == 0:
                 prune_iter_count += 1
                 alpha = prune_iter_count / R if R > 0 else 1.0
                 # 最終的に p 削除するので、残存率は k_final = 1 - p
@@ -143,16 +146,7 @@ def train_epoch(epoch, model, loader, criterion, device, optimizer, minimizer=No
             minimizer.ascent_step()
             criterion(model(inputs), targets).mean().backward()
             minimizer.descent_step()
-        for module in model.modules():
-            if hasattr(module, 'weight_mask'):
-                with torch.no_grad():
-                    if module.weight.grad is not None:
-                        module.weight.grad *= module.weight_mask
         optimizer.step()
-        for module in model.modules():
-            if hasattr(module, 'weight_mask'):
-                with torch.no_grad():
-                    module.weight *= module.weight_mask
 
         train_loss += loss.item()
         _, predicted = outputs.max(1)

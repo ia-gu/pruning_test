@@ -19,8 +19,7 @@ def train(args, model, train_loader, eval_loader, criterion, device):
     elif args.optimizer == 'ASAM':
         optimizer = torch.optim.SGD(model.parameters(), lr=args.lr, momentum=args.momentum, weight_decay=args.weight_decay)
         minimizer = ASAM(optimizer, model, rho=args.rho, eta=0.01)
-        # scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=args.epochs+20)
-        scheduler = WarmupCosineScheduler(optimizer, warmup_epochs=8, total_epochs=args.epochs+20, max_lr=args.lr)
+        scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(minimizer.optimizer, args.epochs+20)
     else:
         raise ValueError('Optimizer should be either SGD or Adam')
     
@@ -46,6 +45,7 @@ def train(args, model, train_loader, eval_loader, criterion, device):
             model, tmp_model = pruning(args, epoch, model, train_loader, eval_loader, criterion, pruning_ratio, device)
             # save model
             torch.save(tmp_model.state_dict(), os.path.join(args.output_path, 'ckpt', 'checkpoint.pth'))
+            torch.save(tmp_model.state_dict(), os.path.join(args.output_path, 'ckpt', str(epoch+1)+'.pth'))
             del tmp_model
             gc.collect()
 

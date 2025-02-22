@@ -14,6 +14,7 @@ import argparse
 from datetime import datetime
 
 from src.train import train
+from src.train_iterative import train_iterative
 from src.get_dataset import build_dataset, build_eval_dataset
 from src.model import CNNModel
 
@@ -34,10 +35,12 @@ def main(args):
     if args.weight_path:
         model.load_state_dict(torch.load(args.weight_path))
     model = model.to(device)
-
-    train(args, model, train_loader, eval_loader, criterion, device)
-
-
+    if args.prune_mode == 'epoch':
+        print('----------   Prune Per Epochs   ----------')
+        train(args, model, train_loader, eval_loader, criterion, device)
+    elif args.prune_mode == 'iteration':
+        print('----------   Prune Per Iterations   ----------')
+        train_iterative(args, model, train_loader, eval_loader, criterion, device)
 
 
 def parse_args():
@@ -45,7 +48,7 @@ def parse_args():
     parser.add_argument('--model', type=str, default='ResNet50')
     parser.add_argument('--num_classes', type=int, default=1000)
     parser.add_argument('--dataset', type=str, default='ImageNet')
-    parser.add_argument('--seed', type=int, default=42)
+
     parser.add_argument('--pruning_ratio', type=float, default=0.5)
     parser.add_argument('--optimizer', type=str, default='Adam')
     parser.add_argument('--train_method', type=str, default='None')
@@ -55,12 +58,13 @@ def parse_args():
     parser.add_argument('--rho', type=float, default=0.5)
     parser.add_argument('--warmup_epochs', type=int, default=0, help='Optimal for warmup pruning schedule')
     parser.add_argument('--prune_mode', type=str, default='epoch')
+    parser.add_argument('--step', type=int, default=10)
 
+    parser.add_argument('--seed', type=int, default=42)
+    parser.add_argument('--epochs', type=int, default=200)
     parser.add_argument('--batch_size', type=int, default=128)
     parser.add_argument('--lr', type=float, default=1e-4)
-    parser.add_argument('--epochs', type=int, default=200)
     parser.add_argument('--cosine_warmup_epochs', type=int, default=0, help='Optional for warmup cosine annealing')
-    parser.add_argument('--step', type=int, default=10)
     parser.add_argument('--importance', type=str, default='None', help='None: なし, L1: パラメータ, Hessian: ヘッシアン, HessianParam: パラメータ×ヘッシアン')
 
     parser.add_argument('--wandb_project', type=str, default='pruning')
