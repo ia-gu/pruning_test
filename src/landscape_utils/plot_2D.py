@@ -10,6 +10,7 @@ import argparse
 import numpy as np
 from os.path import exists
 import seaborn as sns
+from matplotlib.colors import Normalize
 
 
 def plot_2d_contour(surf_file, surf_name='train_loss', vmin=0.1, vmax=10, vlevel=0.5, show=False):
@@ -85,7 +86,8 @@ def plot_2d_contour(surf_file, surf_name='train_loss', vmin=0.1, vmax=10, vlevel
     ax = fig.add_subplot(111, projection='3d')
 
     # サーフェスプロット
-    surf = ax.plot_surface(X, Y, Z, cmap=cm.coolwarm, linewidth=0, antialiased=False)
+    norm = Normalize(vmin=vmin, vmax=vmax)
+    surf = ax.plot_surface(X, Y, Z, cmap=cm.coolwarm, norm=norm, linewidth=0, antialiased=False)
 
     # 視点を明示的に設定
     ax.view_init(elev=30, azim=45)  # 仰角30度、方位角45度
