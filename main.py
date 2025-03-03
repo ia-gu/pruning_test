@@ -59,6 +59,7 @@ def parse_args():
     parser.add_argument('--warmup_epochs', type=int, default=0, help='Optimal for warmup pruning schedule')
     parser.add_argument('--prune_mode', type=str, default='epoch')
     parser.add_argument('--step', type=int, default=10)
+    parser.add_argument('--verbose', type=bool, default=True)
 
     parser.add_argument('--seed', type=int, default=42)
     parser.add_argument('--epochs', type=int, default=200)

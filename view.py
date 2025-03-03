@@ -197,7 +197,7 @@ if __name__ == '__main__':
     else:
         comm, rank, nproc = None, 0, 1
     torch.cuda.set_device(rank)
-    os.makedirs(args.weight_path.replace(args.weight_path.split('/')[-1], 'landscape'), exist_ok=True)
+    os.makedirs(args.weight_path.replace(args.weight_path.split('/')[-1], 'landscape/'+args.epoch), exist_ok=True)
     surf_file = args.weight_path.replace(args.weight_path.split('/')[-1], 'landscape/'+args.epoch+'/surface.h5')
     if not os.path.exists(surf_file):
         try:

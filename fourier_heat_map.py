@@ -28,7 +28,6 @@ def plot_fig(args, scores):
     )
     #sns.set(font_scale = 2)
     ax.collections[0].colorbar.set_label('Error')
-    os.makedirs(args.weight_path.replace(args.weight_path.split('/')[-1], os.path.join('fourier_heat_map', args.epoch)), exist_ok=True)
     plt.savefig(args.weight_path.replace(args.weight_path.split('/')[-1], os.path.join('fourier_heat_map', args.epoch, 'fourier_heat_map.png')), dpi=100)
     plt.savefig(args.weight_path.replace(args.weight_path.split('/')[-1], os.path.join('fourier_heat_map', args.epoch, 'fourier_heat_map.svg')), dpi=100)
     plt.clf()
@@ -45,10 +44,11 @@ if __name__ == "__main__":
     parser.add_argument('--epoch', type=str, default=None)
     parser.add_argument('--eps', type=float, default=4)
     args = parser.parse_args()
+    os.makedirs(args.weight_path.replace(args.weight_path.split('/')[-1], os.path.join('fourier_heat_map', args.epoch)), exist_ok=True)
 
     device = torch.device('cuda')
 
-    if not os.path.exists(args.weight_path.replace(args.weight_path.split('/')[-1], 'fourier_heat_map.csv')):
+    if not os.path.exists(args.weight_path.replace(args.weight_path.split('/')[-1], os.path.join('fourier_heat_map', args.epoch, 'fourier_heat_map.csv'))):
 
         model = CNNModel(model=args.model, classes=args.num_classes, pretrained=False)
         model.load_state_dict(torch.load(os.path.join(args.weight_path, args.epoch+'.pth')))
@@ -79,10 +79,10 @@ if __name__ == "__main__":
                 csv[xx,yy] = error
 
 
-                np.savetxt(args.weight_path.replace(args.weight_path.split('/')[-1], 'fourier_heat_map.csv'), csv, delimiter=',')
+                np.savetxt(args.weight_path.replace(args.weight_path.split('/')[-1], os.path.join('fourier_heat_map', args.epoch, 'fourier_heat_map.csv')), csv, delimiter=',')
                 print(f'H:{xx+1:d} | W:{yy+1:d} | error: {error:.3f}')
 
-    scores = np.loadtxt(args.weight_path.replace(args.weight_path.split('/')[-1], 'fourier_heat_map.csv'), delimiter=',')
+    scores = np.loadtxt(args.weight_path.replace(args.weight_path.split('/')[-1], os.path.join('fourier_heat_map', args.epoch, 'fourier_heat_map.csv')), delimiter=',')
     plot_fig(args, scores)
 
     

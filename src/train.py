@@ -44,7 +44,6 @@ def train(args, model, train_loader, eval_loader, criterion, device):
             pruning_ratio += (args.pruning_ratio / num_steps)
             model, tmp_model = pruning(args, epoch, model, train_loader, eval_loader, criterion, pruning_ratio, device)
             # save model
-            torch.save(tmp_model.state_dict(), os.path.join(args.output_path, 'ckpt', 'checkpoint.pth'))
             torch.save(tmp_model.state_dict(), os.path.join(args.output_path, 'ckpt', str(epoch+1)+'.pth'))
             del tmp_model
             gc.collect()
@@ -168,7 +167,7 @@ def pruning(args, epoch, model, train_loader, eval_loader, criterion, pruning_ra
             total_params += non_zero_params
     print(f'\nTotal number of non-zero parameters: {total_params:,}')
 
-    model, tmp_model = prune_model(args, model, criterion, train_loader, amount=pruning_ratio)
+    model, tmp_model = prune_model(args, model, criterion, train_loader, sparsity=pruning_ratio)
     print('Pruning後のモデル:')
     total_params = 0
     for module in model.modules():

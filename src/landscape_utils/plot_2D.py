@@ -11,7 +11,11 @@ import numpy as np
 from os.path import exists
 import seaborn as sns
 from matplotlib.colors import Normalize
+import matplotlib.font_manager as fm
 
+font_path = '/home/ueno/fonts/times.ttf'
+fm.fontManager.addfont(font_path)
+plt.rcParams['font.family'] = 'Times New Roman'
 
 def plot_2d_contour(surf_file, surf_name='train_loss', vmin=0.1, vmax=10, vlevel=0.5, show=False):
     """Plot 2D contour map and 3D surface."""
@@ -84,6 +88,7 @@ def plot_2d_contour(surf_file, surf_name='train_loss', vmin=0.1, vmax=10, vlevel
 
     fig = plt.figure(figsize=(10, 8))  # フィギュアサイズを明示的に指定
     ax = fig.add_subplot(111, projection='3d')
+    ax.set_axis_off()
 
     # サーフェスプロット
     norm = Normalize(vmin=vmin, vmax=vmax)
@@ -92,15 +97,11 @@ def plot_2d_contour(surf_file, surf_name='train_loss', vmin=0.1, vmax=10, vlevel
     # 視点を明示的に設定
     ax.view_init(elev=30, azim=45)  # 仰角30度、方位角45度
 
-    # 軸ラベルを設定
-    ax.set_xlabel('X')
-    ax.set_ylabel('Y')
-    ax.set_zlabel('Z')
     # Zの範囲を設定
     ax.set_zlim(vmin, vmax)
 
     # グリッドを表示
-    ax.grid(True)
+    ax.grid(False)
 
     # カラーバー
     fig.colorbar(surf, shrink=0.5, aspect=5)
