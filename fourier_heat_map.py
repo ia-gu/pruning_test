@@ -4,6 +4,7 @@ import torch
 import os
 import argparse
 import matplotlib.pyplot as plt
+import matplotlib.font_manager as fm
 import numpy as np
 import seaborn as sns
 
@@ -11,6 +12,9 @@ from src.model import CNNModel
 from src.get_dataset import build_eval_dataset
 
 
+font_path = '/home/ueno/fonts/times.ttf'
+fm.fontManager.addfont(font_path)
+plt.rcParams['font.family'] = 'Times New Roman'
 
 def plot_fig(args, scores):
 
@@ -25,12 +29,29 @@ def plot_fig(args, scores):
         cbar=True,
         xticklabels=False,
         yticklabels=False,
+        square=True
     )
     #sns.set(font_scale = 2)
     ax.collections[0].colorbar.set_label('Error')
     plt.savefig(args.weight_path.replace(args.weight_path.split('/')[-1], os.path.join('fourier_heat_map', args.epoch, 'fourier_heat_map.png')), dpi=100)
     plt.savefig(args.weight_path.replace(args.weight_path.split('/')[-1], os.path.join('fourier_heat_map', args.epoch, 'fourier_heat_map.svg')), dpi=100)
+    plt.savefig(args.weight_path.replace(args.weight_path.split('/')[-1], os.path.join('fourier_heat_map', args.epoch, 'fourier_heat_map.pdf')), dpi=100)
     plt.clf()
+    # 長方形になるので，正方形にしたい
+    fig, ax=plt.subplots()
+    ax =sns.heatmap(
+        scores,
+        vmin=0,
+        vmax=1.0,
+        cmap="jet",
+        cbar=False,
+        xticklabels=False,
+        yticklabels=False,
+        square=True,
+    )
+    plt.savefig(args.weight_path.replace(args.weight_path.split('/')[-1], os.path.join('fourier_heat_map', args.epoch, 'fourier_heat_map_wo_bar.png')), dpi=100)
+    plt.savefig(args.weight_path.replace(args.weight_path.split('/')[-1], os.path.join('fourier_heat_map', args.epoch, 'fourier_heat_map_wo_bar.svg')), dpi=100)
+    plt.savefig(args.weight_path.replace(args.weight_path.split('/')[-1], os.path.join('fourier_heat_map', args.epoch, 'fourier_heat_map_wo_bar.pdf')), dpi=100)
     plt.close()
 
 

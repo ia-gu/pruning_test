@@ -55,15 +55,35 @@ def plot_2d_contour(surf_file, surf_name='train_loss', vmin=0.1, vmax=10, vlevel
                 bbox_inches='tight', format='png')
     fig.savefig(surf_file + '_' + surf_name + '_2dcontour' + '.svg', dpi=300,
                 bbox_inches='tight', format='svg')
+    # メモリを非表示に
+    fig = plt.figure()
+    CS = plt.contour(X, Y, Z, cmap='summer', levels=np.arange(vmin, vmax, vlevel))
+    plt.clabel(CS, inline=1, fontsize=8)
+    plt.axis('off')
+    fig.savefig(surf_file + '_' + surf_name + '_2dcontour_wo_bar' + '.pdf', dpi=300,
+                bbox_inches='tight', format='pdf')
+    fig.savefig(surf_file + '_' + surf_name + '_2dcontour_wo_bar' + '.png', dpi=300,
+                bbox_inches='tight', format='png')
+    fig.savefig(surf_file + '_' + surf_name + '_2dcontour_wo_bar' + '.svg', dpi=300,
+                bbox_inches='tight', format='svg')
 
     fig = plt.figure()
-    print(surf_file + '_' + surf_name + '_2dcontourf' + '.pdf')
     CS = plt.contourf(X, Y, Z, cmap='summer', levels=np.arange(vmin, vmax, vlevel))
     fig.savefig(surf_file + '_' + surf_name + '_2dcontourf' + '.pdf', dpi=300,
                 bbox_inches='tight', format='pdf')
     fig.savefig(surf_file + '_' + surf_name + '_2dcontourf' + '.png', dpi=300,
                 bbox_inches='tight', format='png')
     fig.savefig(surf_file + '_' + surf_name + '_2dcontourf' + '.svg', dpi=300,
+                bbox_inches='tight', format='svg')
+
+    fig = plt.figure()
+    CS = plt.contourf(X, Y, Z, cmap='summer', levels=np.arange(vmin, vmax, vlevel))
+    plt.axis('off')
+    fig.savefig(surf_file + '_' + surf_name + '_2dcontourf_wo_bar' + '.pdf', dpi=300,
+                bbox_inches='tight', format='pdf')
+    fig.savefig(surf_file + '_' + surf_name + '_2dcontourf_wo_bar' + '.png', dpi=300,
+                bbox_inches='tight', format='png')
+    fig.savefig(surf_file + '_' + surf_name + '_2dcontourf_wo_bar' + '.svg', dpi=300,
                 bbox_inches='tight', format='svg')
 
     # --------------------------------------------------------------------
@@ -76,6 +96,14 @@ def plot_2d_contour(surf_file, surf_name='train_loss', vmin=0.1, vmax=10, vlevel
     sns_plot.get_figure().savefig(surf_file + '_' + surf_name + '_2dheat.pdf', dpi=300, bbox_inches='tight', format='pdf')
     sns_plot.get_figure().savefig(surf_file + '_' + surf_name + '_2dheat.png', dpi=300, bbox_inches='tight', format='png')
     sns_plot.get_figure().savefig(surf_file + '_' + surf_name + '_2dheat.svg', dpi=300, bbox_inches='tight', format='svg')
+    # からーばーを非表示に
+    fig = plt.figure()
+    sns_plot = sns.heatmap(Z, cmap='viridis', cbar=False, vmin=vmin, vmax=vmax,
+                           xticklabels=False, yticklabels=False)
+    sns_plot.invert_yaxis()
+    sns_plot.get_figure().savefig(surf_file + '_' + surf_name + '_2dheat_wo_colorbar.pdf', dpi=300, bbox_inches='tight', format='pdf')
+    sns_plot.get_figure().savefig(surf_file + '_' + surf_name + '_2dheat_wo_colorbar.png', dpi=300, bbox_inches='tight', format='png')
+    sns_plot.get_figure().savefig(surf_file + '_' + surf_name + '_2dheat_wo_colorbar.svg', dpi=300, bbox_inches='tight', format='svg')
 
     # vmax, vminで切り落とす
     Z = np.clip(Z, vmin, vmax)
@@ -95,7 +123,7 @@ def plot_2d_contour(surf_file, surf_name='train_loss', vmin=0.1, vmax=10, vlevel
     surf = ax.plot_surface(X, Y, Z, cmap=cm.coolwarm, norm=norm, linewidth=0, antialiased=False)
 
     # 視点を明示的に設定
-    ax.view_init(elev=30, azim=45)  # 仰角30度、方位角45度
+    ax.view_init(elev=35, azim=20)  # 仰角30度、方位角45度
 
     # Zの範囲を設定
     ax.set_zlim(vmin, vmax)
@@ -108,7 +136,11 @@ def plot_2d_contour(surf_file, surf_name='train_loss', vmin=0.1, vmax=10, vlevel
     fig.savefig(surf_file + '_' + surf_name + '_3dsurface.pdf', dpi=300, bbox_inches='tight', format='pdf')
     fig.savefig(surf_file + '_' + surf_name + '_3dsurface.png', dpi=300, bbox_inches='tight', format='png')
     fig.savefig(surf_file + '_' + surf_name + '_3dsurface.svg', dpi=300, bbox_inches='tight', format='svg')
-
+    # カラーバーを非表示に
+    fig.colorbar(surf, shrink=0.0, aspect=5)
+    fig.savefig(surf_file + '_' + surf_name + '_3dsurface_wo_colorbar.pdf', dpi=300, bbox_inches='tight', format='pdf')
+    fig.savefig(surf_file + '_' + surf_name + '_3dsurface_wo_colorbar.png', dpi=300, bbox_inches='tight', format='png')
+    fig.savefig(surf_file + '_' + surf_name + '_3dsurface_wo_colorbar.svg', dpi=300, bbox_inches='tight', format='svg')
     f.close()
 
 
