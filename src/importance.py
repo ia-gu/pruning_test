@@ -1,4 +1,8 @@
 import os
+import csv
+import gzip
+import pickle
+
 import torch
 import torch.nn as nn
 import torch.nn.utils.prune as prune
@@ -47,22 +51,49 @@ def _prune_with_hessian_diag_approx(model, hessian_diag_list, sparsity, args=Non
         return model
     threshold = torch.topk(diag_scores, k, largest=True).values.min()
     prune_targets = []
+    score_list = []
+    param_values_list = []
     idx = 0
 
     for module in model.modules():
         for name, param in module.named_parameters(recurse=False):
             if param.requires_grad:
                 param_size = param.numel()
-                param_diag_score = diag_scores[idx : idx + param_size]
+                diag_score = diag_scores[idx : idx + param_size]
                 idx += param_size
                 # bias項などはスキップ
                 if name != "weight":
                     continue
                 # パラメータの対角近似スコアが閾値以上のものを残す
-                mask_flat = (param_diag_score >= threshold).float()
+                mask_flat = (diag_score >= threshold).float()
                 mask = mask_flat.view(param.shape)
-
                 prune_targets.append((module, name, mask))
+
+
+                if args and args.verbose:
+                    retained = torch.sum(mask).item()
+                    total = mask.numel()
+                    retention_rate = retained / total * 100
+                    pruned = total - retained
+                    os.makedirs(os.path.join(args.output_path, 'prune_info'), exist_ok=True)
+                    with open(os.path.join(args.output_path, 'prune_info', 'info_'+str(args.current_epoch)+'.txt'), 'a+') as f:
+                        print(f"モジュール: {module.__class__.__name__}, パラメータ: {name}", file=f)
+                        print(f"  形状: {mask.shape}, 総パラメータ数: {total}", file=f)
+                        print(f"  残したパラメータ: {retained} ({retention_rate:.2f}%)", file=f)
+                        print(f"  プルーニングしたパラメータ: {pruned} ({100-retention_rate:.2f}%)", file=f)
+                    with open(os.path.join(args.output_path, 'prune_info', 'info_'+str(args.current_epoch)+'.csv'), 'a+') as f:
+                        writer = csv.writer(f)
+                        writer.writerow([module.__class__.__name__, mask.shape, total, retained, pruned])
+                    score_list.append(diag_score)
+                    param_values_list.append(param.clone())
+
+    if args.verbose:
+        with gzip.open(os.path.join(args.output_path, 'prune_info', 'score_'+str(args.current_epoch)+'.gz'), 'wb') as f:
+            pickle.dump(score_list, f)
+        with gzip.open(os.path.join(args.output_path, 'prune_info', 'param_'+str(args.current_epoch)+'.gz'), 'wb') as f:
+            pickle.dump(param_values_list, f)
+
+
     for (module, name, mask) in prune_targets:
         prune.custom_from_mask(module, name, mask)
     
@@ -75,15 +106,19 @@ def _prune_with_hessian_diag_approx_param(model, hessian_diag_list, sparsity, ar
         diag_scores.append(torch.abs(diag_tensor.view(-1))) 
         param_list.append(torch.abs(param.view(-1)))
     adjusted_scores = [h * p for h, p in zip(diag_scores, param_list)]
-    diag_scores = torch.cat(adjusted_scores)
+    diag_scores = torch.cat(diag_scores)
+    adjusted_scores = torch.cat(adjusted_scores)
 
-    num_params = diag_scores.numel()
+    num_params = adjusted_scores.numel()
     k = int(num_params * (1 - sparsity))
     if k <= 0:
         print("sparsity が高すぎてパラメータを全て刈り取る可能性があります。")
         return model
-    threshold = torch.topk(diag_scores, k, largest=True).values.min()
+    threshold = torch.topk(adjusted_scores, k, largest=True).values.min()
     prune_targets = []
+    score_list = []
+    param_values_list = []
+    hessian_values_list = []
     idx = 0
 
     for module in model.modules():
@@ -91,7 +126,8 @@ def _prune_with_hessian_diag_approx_param(model, hessian_diag_list, sparsity, ar
             if param.requires_grad:
                 param_size = param.numel()
                 # Hessianとパラメータの要素積
-                param_diag_score = diag_scores[idx : idx + param_size]
+                param_diag_score = adjusted_scores[idx : idx + param_size]
+                diag_score = diag_scores[idx : idx + param_size]
                 idx += param_size
                 # bias項などはスキップ
                 if name != "weight":
@@ -99,8 +135,36 @@ def _prune_with_hessian_diag_approx_param(model, hessian_diag_list, sparsity, ar
                 # パラメータの対角近似スコアが閾値以上のものを残す
                 mask_flat = (param_diag_score >= threshold).float()
                 mask = mask_flat.view(param.shape)
-
                 prune_targets.append((module, name, mask))
+
+
+                if args and args.verbose:
+                    retained = torch.sum(mask).item()
+                    total = mask.numel()
+                    retention_rate = retained / total * 100
+                    pruned = total - retained
+                    os.makedirs(os.path.join(args.output_path, 'prune_info'), exist_ok=True)
+                    with open(os.path.join(args.output_path, 'prune_info', 'info_'+str(args.current_epoch)+'.txt'), 'a+') as f:
+                        print(f"モジュール: {module.__class__.__name__}, パラメータ: {name}", file=f)
+                        print(f"  形状: {mask.shape}, 総パラメータ数: {total}", file=f)
+                        print(f"  残したパラメータ: {retained} ({retention_rate:.2f}%)", file=f)
+                        print(f"  プルーニングしたパラメータ: {pruned} ({100-retention_rate:.2f}%)", file=f)
+                    with open(os.path.join(args.output_path, 'prune_info', 'info_'+str(args.current_epoch)+'.csv'), 'a+') as f:
+                        writer = csv.writer(f)
+                        writer.writerow([module.__class__.__name__, mask.shape, total, retained, pruned])
+                    score_list.append(param_diag_score)
+                    param_values_list.append(param.clone())
+                    hessian_values_list.append(diag_score)
+
+    if args.verbose:
+        with gzip.open(os.path.join(args.output_path, 'prune_info', 'score_'+str(args.current_epoch)+'.gz'), 'wb') as f:
+            pickle.dump(score_list, f)
+        with gzip.open(os.path.join(args.output_path, 'prune_info', 'param_'+str(args.current_epoch)+'.gz'), 'wb') as f:
+            pickle.dump(param_values_list, f)
+        with gzip.open(os.path.join(args.output_path, 'prune_info', 'hessian_'+str(args.current_epoch)+'.gz'), 'wb') as f:
+            pickle.dump(hessian_values_list, f)
+
+
     for (module, name, mask) in prune_targets:
         prune.custom_from_mask(module, name, mask)
 
@@ -122,6 +186,8 @@ def _prune_with_jacobian(model, jacobian_list, sparsity, args=None):
     # k番目の大きさを閾値とする
     threshold = torch.topk(jacobian_scores, k, largest=True).values.min()
     prune_targets = []
+    score_list = []
+    param_values_list = []
     idx = 0
 
     # 各パラメータごとにマスクを作成（weight 以外はスキップ）
@@ -129,17 +195,39 @@ def _prune_with_jacobian(model, jacobian_list, sparsity, args=None):
         for name, param in module.named_parameters(recurse=False):
             if param.requires_grad:
                 param_size = param.numel()
-                param_jacobian_score = jacobian_scores[idx: idx + param_size]
+                jacobian_score = jacobian_scores[idx: idx + param_size]
                 idx += param_size
                 # bias などはスキップ
                 if name != "weight":
                     continue
                 # ヤコビアンスコアが閾値以上なら1（残す），未満なら0（枝刈り）
-                mask_flat = (param_jacobian_score >= threshold).float()
+                mask_flat = (jacobian_score >= threshold).float()
                 mask = mask_flat.view(param.shape)
                 prune_targets.append((module, name, mask))
-    
-    # prune.custom_from_mask を用いて枝刈りを適用
+
+                if args and args.verbose:
+                    retained = torch.sum(mask).item()
+                    total = mask.numel()
+                    retention_rate = retained / total * 100
+                    pruned = total - retained
+                    os.makedirs(os.path.join(args.output_path, 'prune_info'), exist_ok=True)
+                    with open(os.path.join(args.output_path, 'prune_info', 'info_'+str(args.current_epoch)+'.txt'), 'a+') as f:
+                        print(f"モジュール: {module.__class__.__name__}, パラメータ: {name}", file=f)
+                        print(f"  形状: {mask.shape}, 総パラメータ数: {total}", file=f)
+                        print(f"  残したパラメータ: {retained} ({retention_rate:.2f}%)", file=f)
+                        print(f"  プルーニングしたパラメータ: {pruned} ({100-retention_rate:.2f}%)", file=f)
+                    with open(os.path.join(args.output_path, 'prune_info', 'info_'+str(args.current_epoch)+'.csv'), 'a+') as f:
+                        writer = csv.writer(f)
+                        writer.writerow([module.__class__.__name__, mask.shape, total, retained, pruned])
+                    score_list.append(jacobian_score)
+                    param_values_list.append(param.clone())
+
+    if args.verbose:
+        with gzip.open(os.path.join(args.output_path, 'prune_info', 'score_'+str(args.current_epoch)+'.gz'), 'wb') as f:
+            pickle.dump(score_list, f)
+        with gzip.open(os.path.join(args.output_path, 'prune_info', 'param_'+str(args.current_epoch)+'.gz'), 'wb') as f:
+            pickle.dump(param_values_list, f)
+
     for (module, name, mask) in prune_targets:
         prune.custom_from_mask(module, name, mask)
 
@@ -152,17 +240,21 @@ def _prune_with_jacobian_param(model, jacobian_list, sparsity, args=None):
         jacobian_scores.append(torch.abs(jacobian_tensor.view(-1)))
         param_list.append(torch.abs(param.view(-1)))
     adjusted_scores = [j * p for j, p in zip(jacobian_scores, param_list)]
-    jacobian_scores = torch.cat(adjusted_scores)
+    jacobian_scores = torch.cat(jacobian_scores)
+    adjusted_scores = torch.cat(adjusted_scores)
 
-    num_params = jacobian_scores.numel()
+    num_params = adjusted_scores.numel()
     k = int(num_params * (1 - sparsity))
     if k <= 0:
         print("sparsity が高すぎてパラメータを全て刈り取る可能性があります。")
         return model
 
     # k番目の大きさを閾値とする
-    threshold = torch.topk(jacobian_scores, k, largest=True).values.min()
+    threshold = torch.topk(adjusted_scores, k, largest=True).values.min()
     prune_targets = []
+    score_list = []
+    param_values_list = []
+    jacobian_values_list = []
     idx = 0
 
     # 各パラメータごとにマスクを作成（weight 以外はスキップ）
@@ -170,7 +262,8 @@ def _prune_with_jacobian_param(model, jacobian_list, sparsity, args=None):
         for name, param in module.named_parameters(recurse=False):
             if param.requires_grad:
                 param_size = param.numel()
-                param_jacobian_score = jacobian_scores[idx: idx + param_size]
+                param_jacobian_score = adjusted_scores[idx: idx + param_size]
+                jacobian_score = jacobian_scores[idx: idx + param_size]
                 idx += param_size
                 # bias などはスキップ
                 if name != "weight":
@@ -180,14 +273,41 @@ def _prune_with_jacobian_param(model, jacobian_list, sparsity, args=None):
                 mask = mask_flat.view(param.shape)
                 prune_targets.append((module, name, mask))
     
-    # prune.custom_from_mask を用いて枝刈りを適用
+
+                if args and args.verbose:
+                    retained = torch.sum(mask).item()
+                    total = mask.numel()
+                    retention_rate = retained / total * 100
+                    pruned = total - retained
+                    os.makedirs(os.path.join(args.output_path, 'prune_info'), exist_ok=True)
+                    with open(os.path.join(args.output_path, 'prune_info', 'info_'+str(args.current_epoch)+'.txt'), 'a+') as f:
+                        print(f"モジュール: {module.__class__.__name__}, パラメータ: {name}", file=f)
+                        print(f"  形状: {mask.shape}, 総パラメータ数: {total}", file=f)
+                        print(f"  残したパラメータ: {retained} ({retention_rate:.2f}%)", file=f)
+                        print(f"  プルーニングしたパラメータ: {pruned} ({100-retention_rate:.2f}%)", file=f)
+                    with open(os.path.join(args.output_path, 'prune_info', 'info_'+str(args.current_epoch)+'.csv'), 'a+') as f:
+                        writer = csv.writer(f)
+                        writer.writerow([module.__class__.__name__, mask.shape, total, retained, pruned])
+                    score_list.append(param_jacobian_score)
+                    param_values_list.append(param.clone())
+                    jacobian_values_list.append(jacobian_score)
+
+    if args.verbose:
+        with gzip.open(os.path.join(args.output_path, 'prune_info', 'score_'+str(args.current_epoch)+'.gz'), 'wb') as f:
+            pickle.dump(score_list, f)
+        with gzip.open(os.path.join(args.output_path, 'prune_info', 'param_'+str(args.current_epoch)+'.gz'), 'wb') as f:
+            pickle.dump(param_values_list, f)
+        with gzip.open(os.path.join(args.output_path, 'prune_info', 'jacobian_'+str(args.current_epoch)+'.gz'), 'wb') as f:
+            pickle.dump(jacobian_values_list, f)
+
+
     for (module, name, mask) in prune_targets:
         prune.custom_from_mask(module, name, mask)
 
     return model
 
 def _prune_with_param(model, sparsity, args=None):
-    param_list = torch.cat([param.view(-1) for param in model.parameters()])
+    param_list = torch.cat([param.view(-1).abs() for param in model.parameters()])
 
     num_params = param_list.numel()
     k = int(num_params * (1 - sparsity))
@@ -196,32 +316,40 @@ def _prune_with_param(model, sparsity, args=None):
         return model
 
     threshold = torch.topk(param_list, k, largest=True).values.min()
+
     prune_targets = []
-    idx = 0
+    score_list = []
+    param_values_list = []
 
     for module in model.modules():
         for name, param in module.named_parameters(recurse=False):
-            if param.requires_grad:
-                param_size = param.numel()
-                param_jacobian_score = param_list[idx: idx + param_size]
-                idx += param_size
-                if name != "weight":
-                    continue
-                mask_flat = (param_jacobian_score >= threshold).float()
-                mask = mask_flat.view(param.shape)
+            if param.requires_grad and name == "weight":
+                param_score = param.abs()
+                mask = (param_score >= threshold).float()
                 prune_targets.append((module, name, mask))
 
-                if args.verbose:
+                if args and args.verbose:
                     retained = torch.sum(mask).item()
                     total = mask.numel()
                     retention_rate = retained / total * 100
                     pruned = total - retained
-                    with open(os.path.join(args.args.output_path, 'ckpt', 'logs.txt'), 'a+') as f:
+                    os.makedirs(os.path.join(args.output_path, 'prune_info'), exist_ok=True)
+                    with open(os.path.join(args.output_path, 'prune_info', 'info_'+str(args.current_epoch)+'.txt'), 'a+') as f:
                         print(f"モジュール: {module.__class__.__name__}, パラメータ: {name}", file=f)
                         print(f"  形状: {mask.shape}, 総パラメータ数: {total}", file=f)
                         print(f"  残したパラメータ: {retained} ({retention_rate:.2f}%)", file=f)
                         print(f"  プルーニングしたパラメータ: {pruned} ({100-retention_rate:.2f}%)", file=f)
+                    with open(os.path.join(args.output_path, 'prune_info', 'info_'+str(args.current_epoch)+'.csv'), 'a+') as f:
+                        writer = csv.writer(f)
+                        writer.writerow([module.__class__.__name__, mask.shape, total, retained, pruned])
+                    score_list.append(param_score)
+                    param_values_list.append(param.clone())
 
+    if args.verbose:
+        with gzip.open(os.path.join(args.output_path, 'prune_info', 'score_'+str(args.current_epoch)+'.gz'), 'wb') as f:
+            pickle.dump(score_list, f)
+        with gzip.open(os.path.join(args.output_path, 'prune_info', 'param_'+str(args.current_epoch)+'.gz'), 'wb') as f:
+            pickle.dump(param_values_list, f)
     for (module, name, mask) in prune_targets:
         prune.custom_from_mask(module, name, mask)
 
