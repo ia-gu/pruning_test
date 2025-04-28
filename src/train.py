@@ -41,19 +41,21 @@ def train(args, model, train_loader, eval_loader, criterion, device):
             f.write(f'Epoch: |{epoch+1}| Train_Loss: |{train_loss}| Train_Accuracy: |{train_accuracy}| Eval_Loss: |{eval_loss}| Eval_Accuracy: |{eval_accuracy}|\n')
         wandb.log({'epoch': epoch+1, 'Train_Loss': train_loss, 'Train_Accuracy': train_accuracy, 'Eval_Loss': eval_loss, 'Eval_Accuracy': eval_accuracy})
         scheduler.step()
-        if ((epoch+1)%args.step)==0 and args.importance!='None' and args.warmup_epochs<(epoch+1) and args.verbose:
-            pruning_ratio += (args.pruning_ratio / num_steps)
-            model, tmp_model = pruning(args, epoch, model, train_loader, eval_loader, criterion, pruning_ratio, device)
-            # save model
-            torch.save(tmp_model.state_dict(), os.path.join(args.output_path, 'ckpt', str(epoch+1)+'.pth'))
-            del tmp_model
-            gc.collect()
-        else:
-            pruning_ratio += (args.pruning_ratio / num_steps)
-            model, tmp_model = pruning(args, epoch, model, train_loader, eval_loader, criterion, pruning_ratio, device)
-            torch.save(tmp_model.state_dict(), os.path.join(args.output_path, 'ckpt', 'checkpoint.pth'))
-            del tmp_model
-            gc.collect()
+
+        if args.importance != 'None':
+            if ((epoch+1)%args.step)==0 and args.warmup_epochs<(epoch+1) and args.verbose:
+                pruning_ratio += (args.pruning_ratio / num_steps)
+                model, tmp_model = pruning(args, epoch, model, train_loader, eval_loader, criterion, pruning_ratio, device)
+                # save model
+                torch.save(tmp_model.state_dict(), os.path.join(args.output_path, 'ckpt', str(epoch+1)+'.pth'))
+                del tmp_model
+                gc.collect()
+            else:
+                pruning_ratio += (args.pruning_ratio / num_steps)
+                model, tmp_model = pruning(args, epoch, model, train_loader, eval_loader, criterion, pruning_ratio, device)
+                torch.save(tmp_model.state_dict(), os.path.join(args.output_path, 'ckpt', 'checkpoint.pth'))
+                del tmp_model
+                gc.collect()
 
     for epoch in range(args.epochs, args.epochs+20):
         train_loss, train_accuracy = trainer(epoch, model, train_loader, criterion, device, optimizer, minimizer)

@@ -70,7 +70,7 @@ def _prune_with_hessian_diag_approx(model, hessian_diag_list, sparsity, args=Non
                 prune_targets.append((module, name, mask))
 
 
-                if args and args.verbose:
+                if args.verbose:
                     retained = torch.sum(mask).item()
                     total = mask.numel()
                     retention_rate = retained / total * 100
@@ -138,7 +138,7 @@ def _prune_with_hessian_diag_approx_param(model, hessian_diag_list, sparsity, ar
                 prune_targets.append((module, name, mask))
 
 
-                if args and args.verbose:
+                if args.verbose:
                     retained = torch.sum(mask).item()
                     total = mask.numel()
                     retention_rate = retained / total * 100
@@ -174,7 +174,7 @@ def _prune_with_jacobian(model, jacobian_list, sparsity, args=None):
     # 各テンソルを1次元に変換して連結
     jacobian_scores = []
     for jacobian_tensor in jacobian_list:
-        jacobian_scores.append(jacobian_tensor.view(-1))
+        jacobian_scores.append(torch.abs(jacobian_tensor.view(-1)))  # 絶対値を取る
     jacobian_scores = torch.cat(jacobian_scores)
 
     num_params = jacobian_scores.numel()
@@ -182,7 +182,7 @@ def _prune_with_jacobian(model, jacobian_list, sparsity, args=None):
     if k <= 0:
         print("sparsity が高すぎてパラメータを全て刈り取る可能性があります。")
         return model
-
+    
     # k番目の大きさを閾値とする
     threshold = torch.topk(jacobian_scores, k, largest=True).values.min()
     prune_targets = []
@@ -203,9 +203,15 @@ def _prune_with_jacobian(model, jacobian_list, sparsity, args=None):
                 # ヤコビアンスコアが閾値以上なら1（残す），未満なら0（枝刈り）
                 mask_flat = (jacobian_score >= threshold).float()
                 mask = mask_flat.view(param.shape)
+                
+                # 前回のマスク強制適用を削除
+                # ★★ この部分を削除 ★★
+                # previous_mask = (param.data != 0).float()
+                # mask = mask * previous_mask
+
                 prune_targets.append((module, name, mask))
 
-                if args and args.verbose:
+                if args.verbose:
                     retained = torch.sum(mask).item()
                     total = mask.numel()
                     retention_rate = retained / total * 100
@@ -274,7 +280,7 @@ def _prune_with_jacobian_param(model, jacobian_list, sparsity, args=None):
                 prune_targets.append((module, name, mask))
     
 
-                if args and args.verbose:
+                if args.verbose:
                     retained = torch.sum(mask).item()
                     total = mask.numel()
                     retention_rate = retained / total * 100
@@ -328,7 +334,7 @@ def _prune_with_param(model, sparsity, args=None):
                 mask = (param_score >= threshold).float()
                 prune_targets.append((module, name, mask))
 
-                if args and args.verbose:
+                if args.verbose:
                     retained = torch.sum(mask).item()
                     total = mask.numel()
                     retention_rate = retained / total * 100
@@ -388,7 +394,7 @@ def _compute_hessian_diagonal_approx(model, dataloader, loss_fn):
 
     return hessian_diag
 
-def _compute_jacobian(model, dataloader):
+def _compute_jacobian(model, dataloader, chunk_size=10):
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     model.to(device)
     model.eval()
@@ -397,55 +403,45 @@ def _compute_jacobian(model, dataloader):
     jacobian_approx = [torch.zeros_like(p, device=device) for p in params]
     total_elements = 0
 
-    # バッチ処理を効率化
     with torch.enable_grad():
         for inputs, _ in dataloader:
             inputs = inputs.to(device)
             batch_size = inputs.size(0)
-            
-            # バッチ全体で一度に計算
-            outputs = model(inputs)
-            output_dim = outputs.numel() // batch_size
-            total_elements += batch_size * output_dim
 
-            # 出力の次元に応じて処理を分岐
-            if output_dim > 1:
-                # reshape して効率的に処理
-                outputs_flat = outputs.view(batch_size, -1)
-                for j in range(outputs_flat.size(1)):
-                    # バッチ全体の勾配を一度に計算
-                    grad_outputs = torch.zeros_like(outputs_flat)
+            outputs = model(inputs)
+            outputs_flat = outputs.view(batch_size, -1)
+            num_outputs = outputs_flat.size(1)
+            total_elements += batch_size * num_outputs
+
+            for start_idx in range(0, num_outputs, chunk_size):
+                end_idx = min(start_idx + chunk_size, num_outputs)
+                grad_outputs = torch.zeros((batch_size, end_idx - start_idx), device=device)
+                for j in range(end_idx - start_idx):
                     grad_outputs[:, j] = 1.0
-                    grads = torch.autograd.grad(
-                        outputs_flat, params,
-                        grad_outputs=grad_outputs,
-                        retain_graph=(j < outputs_flat.size(1) - 1),
-                        allow_unused=True
-                    )
-                    for idx, grad in enumerate(grads):
-                        if grad is not None:
-                            # バッチ方向に集約
-                            jacobian_approx[idx] += grad.pow(2).sum(0)
-            else:
-                # スカラー出力の場合
-                grad_outputs = torch.ones_like(outputs)
+
                 grads = torch.autograd.grad(
-                    outputs, params,
+                    outputs_flat[:, start_idx:end_idx],
+                    params,
                     grad_outputs=grad_outputs,
+                    retain_graph=True,
                     allow_unused=True
                 )
+
                 for idx, grad in enumerate(grads):
                     if grad is not None:
-                        jacobian_approx[idx] += grad.pow(2).sum(0)
+                        grad_sum = grad.pow(2).sum(dim=0)
+                        nonzero_mask = (params[idx].data != 0).float()
+                        # ここで掛け算でマスクを適用する
+                        jacobian_approx[idx] += grad_sum * nonzero_mask
 
-            # メモリ効率化のためにキャッシュをクリア
-            torch.cuda.empty_cache()
+    torch.cuda.empty_cache()
 
-    # 正規化
     for idx in range(len(jacobian_approx)):
         jacobian_approx[idx] /= total_elements
 
     return jacobian_approx
+
+
 
 # HACK torch.prune継承のお試し
 class L1L2CombinedPruning(prune.BasePruningMethod):

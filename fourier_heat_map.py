@@ -99,7 +99,7 @@ if __name__ == "__main__":
                 error =  1 - valid_acc/valid_total
                 csv[xx,yy] = error
 
-
+                print(args.weight_path.replace(args.weight_path.split('/')[-1], os.path.join('fourier_heat_map', args.epoch, 'fourier_heat_map.csv')))
                 np.savetxt(args.weight_path.replace(args.weight_path.split('/')[-1], os.path.join('fourier_heat_map', args.epoch, 'fourier_heat_map.csv')), csv, delimiter=',')
                 print(f'H:{xx+1:d} | W:{yy+1:d} | error: {error:.3f}')
 

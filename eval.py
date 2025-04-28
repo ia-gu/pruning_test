@@ -8,7 +8,6 @@ import sys
 sys.path.append('./')
 import random
 import numpy as np
-import wandb
 import argparse
 from datetime import datetime
 
@@ -22,8 +21,11 @@ def main(args):
     model.load_state_dict(torch.load(os.path.join(args.weight_path, args.epoch+'.pth')))
 
     model = model.to(device)
-    test_datasets = build_test_dataset(args)
+    # モデルの非ゼロパラメータ数をカウント
+    nonzero_params = sum((param != 0).sum().item() for param in model.parameters())
+    print(f"Non-zero parameters: {nonzero_params}")
 
+    test_datasets = build_test_dataset(args)
     dataset_types = ['clean', 'brightness', 'contrast', 'defocus_blur', 'elastic_transform', 'fog', 'frost', 'gaussian_blur', 'gaussian_noise', 'glass_blur', 
                      'impulse_noise', 'jpeg_compression', 'motion_blur', 'pixelate', 'saturate', 'shot_noise', 'snow', 'spatter', 'speckle_noise', 'zoom_blur']
     if not len(test_datasets) == len(dataset_types):
@@ -145,10 +147,6 @@ def parse_args():
     parser.add_argument('--weight_path', type=str, default=None)
     parser.add_argument('--epoch', type=str, default='0')
 
-    parser.add_argument('--wandb_project', type=str, default='pruning')
-    parser.add_argument('--wandb_run', type=str, default='debug')
-    parser.add_argument('--wandb_entity', type=str, default='ia-gu')
-
     return parser.parse_args()
 
 def set_seed(args):
@@ -164,6 +162,7 @@ if __name__ == '__main__':
     args = parse_args()
     timestamp = datetime.now().strftime('%Y%m%d%H%M%S')
     args.output_path = args.weight_path
-    wandb.init(project=args.wandb_project, entity=args.wandb_entity, name='eval_'+args.wandb_run+'_'+args.output_path, config=vars(args))
-
-    main(args)
+    if os.path.exists(os.path.join(args.output_path, '../test', args.epoch, 'total_result.txt')):
+        print('Already Evaluated')
+    else:
+        main(args)

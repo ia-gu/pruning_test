@@ -20,7 +20,7 @@ def prune_model(args, model, criterion, train_loader, sparsity=0.5):
         jacobian_pruning(model, sparsity=sparsity, train_loader=train_loader, args=args)
     elif args.importance == 'JacobianParam':
         jacobian_param_pruning(model, sparsity=sparsity, train_loader=train_loader, args=args)
-    elif args.importance == 'Param':
+    elif args.importance == 'Magnitude':
         param_pruning(model, sparsity, args=args)
 
     else:

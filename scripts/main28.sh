@@ -1,15 +1,35 @@
-# python eval.py --model=ResNet18 --num_classes=100 --dataset=CIFAR100 --epoch=final_weight --weight_path=/home/ueno/pruning/test/logs/main/ResNet18/CIFAR100/JacobianParam/0.1/42/0.7/20250228085111/ckpt
-# python eval.py --model=ResNet18 --num_classes=100 --dataset=CIFAR100 --epoch=final_weight --weight_path=/home/ueno/pruning/test/logs/main/ResNet18/CIFAR100/JacobianParam/0.1/42/0.8/20250302082250/ckpt
-# python eval.py --model=ResNet18 --num_classes=100 --dataset=CIFAR100 --epoch=final_weight --weight_path=/home/ueno/pruning/test/logs/main/ResNet18/CIFAR100/JacobianParam/0.1/42/0.9/20250304075317/ckpt
+python main.py --seed=42 --wandb_run=ASAM --lr=0.1 --optimizer=ASAM --rho=0.5 --model=ResNet18 --num_classes=10 --dataset=CIFAR10 --epochs=200 --step=1 --pruning_ratio=0.9 --importance=Jacobian
+python main.py --seed=111 --wandb_run=ASAM --lr=0.1 --optimizer=ASAM --rho=0.5 --model=ResNet18 --num_classes=10 --dataset=CIFAR10 --epochs=200 --step=1 --pruning_ratio=0.9 --importance=Jacobian
+python main.py --seed=3407 --wandb_run=ASAM --lr=0.1 --optimizer=ASAM --rho=0.5 --model=ResNet18 --num_classes=10 --dataset=CIFAR10 --epochs=200 --step=1 --pruning_ratio=0.9 --importance=Jacobian --verbose=True
+python main.py --seed=42 --wandb_run=ASAM --lr=0.1 --optimizer=ASAM --rho=0.5 --model=ResNet18 --num_classes=10 --dataset=CIFAR10 --epochs=200 --step=1 --pruning_ratio=0.99 --importance=Jacobian
+python main.py --seed=111 --wandb_run=ASAM --lr=0.1 --optimizer=ASAM --rho=0.5 --model=ResNet18 --num_classes=10 --dataset=CIFAR10 --epochs=200 --step=1 --pruning_ratio=0.99 --importance=Jacobian
+python main.py --seed=3407 --wandb_run=ASAM --lr=0.1 --optimizer=ASAM --rho=0.5 --model=ResNet18 --num_classes=10 --dataset=CIFAR10 --epochs=200 --step=1 --pruning_ratio=0.99 --importance=Jacobian --verbose=True
 
-# python fourier_heat_map.py --model=ResNet18 --num_classes=100 --dataset=CIFAR100 --epoch=final_weight --weight_path=/home/ueno/pruning/test/logs/main/ResNet18/CIFAR100/JacobianParam/0.1/42/0.7/20250228085111/ckpt
-# python fourier_heat_map.py --model=ResNet18 --num_classes=100 --dataset=CIFAR100 --epoch=final_weight --weight_path=/home/ueno/pruning/test/logs/main/ResNet18/CIFAR100/JacobianParam/0.1/42/0.8/20250302082250/ckpt
-# python fourier_heat_map.py --model=ResNet18 --num_classes=100 --dataset=CIFAR100 --epoch=final_weight --weight_path=/home/ueno/pruning/test/logs/main/ResNet18/CIFAR100/JacobianParam/0.1/42/0.9/20250304075317/ckpt
+python main.py ---seed=42 -wandb_run=ASAM --lr=0.1 --optimizer=ASAM --rho=1.0 --model=ResNet18 --num_classes=100 --dataset=CIFAR100 --epochs=200 --step=1 --pruning_ratio=0.8 --importance=Jacobian
+python main.py ---seed=111 -wandb_run=ASAM --lr=0.1 --optimizer=ASAM --rho=1.0 --model=ResNet18 --num_classes=100 --dataset=CIFAR100 --epochs=200 --step=1 --pruning_ratio=0.8 --importance=Jacobian
+python main.py ---seed=3407 -wandb_run=ASAM --lr=0.1 --optimizer=ASAM --rho=1.0 --model=ResNet18 --num_classes=100 --dataset=CIFAR100 --epochs=200 --step=1 --pruning_ratio=0.8 --importance=Jacobian --verbose=True
+python main.py --seed=42 --wandb_run=ASAM --lr=0.1 --optimizer=ASAM --rho=1.0 --model=ResNet18 --num_classes=100 --dataset=CIFAR100 --epochs=200 --step=1 --pruning_ratio=0.9 --importance=Jacobian
+python main.py --seed=111 --wandb_run=ASAM --lr=0.1 --optimizer=ASAM --rho=1.0 --model=ResNet18 --num_classes=100 --dataset=CIFAR100 --epochs=200 --step=1 --pruning_ratio=0.9 --importance=Jacobian
+python main.py --seed=3407 --wandb_run=ASAM --lr=0.1 --optimizer=ASAM --rho=1.0 --model=ResNet18 --num_classes=100 --dataset=CIFAR100 --epochs=200 --step=1 --pruning_ratio=0.9 --importance=Jacobian --verbose=True
+python main.py --seed=42 --wandb_run=ASAM --lr=0.1 --optimizer=ASAM --rho=1.0 --model=ResNet18 --num_classes=100 --dataset=CIFAR100 --epochs=200 --step=1 --pruning_ratio=0.99 --importance=Jacobian
+python main.py --seed=111 --wandb_run=ASAM --lr=0.1 --optimizer=ASAM --rho=1.0 --model=ResNet18 --num_classes=100 --dataset=CIFAR100 --epochs=200 --step=1 --pruning_ratio=0.99 --importance=Jacobian
+python main.py --seed=3407 --wandb_run=ASAM --lr=0.1 --optimizer=ASAM --rho=1.0 --model=ResNet18 --num_classes=100 --dataset=CIFAR100 --epochs=200 --step=1 --pruning_ratio=0.99 --importance=Jacobian --verbose=True
 
-# python view.py --mpi --model=ResNet18 --num_classes=100 --epoch=final_weight --dataset=CIFAR100 --vmin=0 --vmax=2 --x=-1:1:51 --y=-1:1:51 --dir_type=weights --xnorm=filter --xignore=biasbn --ynorm=filter --yignore=biasbn --weight_path=/home/ueno/pruning/test/logs/main/ResNet18/CIFAR100/JacobianParam/0.1/42/0.7/20250228085111/ckpt
-# python view.py --mpi --model=ResNet18 --num_classes=100 --epoch=final_weight --dataset=CIFAR100 --vmin=0 --vmax=2 --x=-1:1:51 --y=-1:1:51 --dir_type=weights --xnorm=filter --xignore=biasbn --ynorm=filter --yignore=biasbn --weight_path=/home/ueno/pruning/test/logs/main/ResNet18/CIFAR100/JacobianParam/0.1/42/0.8/20250302082250/ckpt
-# python view.py --mpi --model=ResNet18 --num_classes=100 --epoch=final_weight --dataset=CIFAR100 --vmin=0 --vmax=2 --x=-1:1:51 --y=-1:1:51 --dir_type=weights --xnorm=filter --xignore=biasbn --ynorm=filter --yignore=biasbn --weight_path=/home/ueno/pruning/test/logs/main/ResNet18/CIFAR100/JacobianParam/0.1/42/0.9/20250304075317/ckpt
 
-python eval.py --model=ResNet18 --num_classes=100 --dataset=CIFAR100 --epoch=final_weight --weight_path=/home/ueno/pruning/test/logs/main/ResNet18/CIFAR100/JacobianParam/0.1/42/0.99/20250306072443/ckpt
-python fourier_heat_map.py --model=ResNet18 --num_classes=100 --dataset=CIFAR100 --epoch=final_weight --weight_path=/home/ueno/pruning/test/logs/main/ResNet18/CIFAR100/JacobianParam/0.1/42/0.99/20250306072443/ckpt
-python view.py --mpi --model=ResNet18 --num_classes=100 --epoch=final_weight --dataset=CIFAR100 --vmin=0 --vmax=2 --x=-1:1:51 --y=-1:1:51 --dir_type=weights --xnorm=filter --xignore=biasbn --ynorm=filter --yignore=biasbn --weight_path=/home/ueno/pruning/test/logs/main/ResNet18/CIFAR100/JacobianParam/0.1/42/0.99/20250306072443/ckpt
+for dir in /home/ueno/pruning/test/logs/ASAM/ResNet18/CIFAR10/Jacobian/*/*/*/*/ckpt; do
+    if [ -d "$dir" ]; then
+        echo $dir
+        python eval.py --model=ResNet18 --num_classes=10 --dataset=CIFAR10 --epoch=final_weight --weight_path=$dir
+        python fourier_heat_map.py --model=ResNet18 --num_classes=10 --dataset=CIFAR10 --epoch=final_weight --weight_path=$dir
+        python view.py --mpi --model=ResNet18 --num_classes=10 --dataset=CIFAR10 --epoch=final_weight --vmin=0 --vmax=2 --x=-1:1:51 --y=-1:1:51 --dir_type=weights --xnorm=filter --xignore=biasbn --ynorm=filter --yignore=biasbn --weight_path=$dir
+    fi
+done
+
+for dir in /home/ueno/pruning/test/logs/ASAM/ResNet18/CIFAR100/Jacobian/*/*/*/*/ckpt; do
+    if [ -d "$dir" ]; then
+        echo $dir
+        python eval.py --model=ResNet18 --num_classes=100 --dataset=CIFAR100 --epoch=final_weight --weight_path=$dir
+        python fourier_heat_map.py --model=ResNet18 --num_classes=100 --dataset=CIFAR100 --epoch=final_weight --weight_path=$dir
+        python view.py --mpi --model=ResNet18 --num_classes=100 --dataset=CIFAR100 --epoch=final_weight --vmin=0 --vmax=2 --x=-1:1:51 --y=-1:1:51 --dir_type=weights --xnorm=filter --xignore=biasbn --ynorm=filter --yignore=biasbn --weight_path=$dir
+    fi
+done
